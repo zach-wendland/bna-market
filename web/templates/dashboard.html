@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>BNA Listings Dashboard</title>
+    <link rel="stylesheet" href="/static/stylesheet.css" />
+  </head>
+
+  <body>
+    <h1>Dashboard</h1>
+
+    <!-- KPI SCORECARDS -->
+    <div class="kpi-row">
+      {% for label, value in kpis.items() %}
+        <div class="kpi-card">
+          <div class="kpi-label">{{ label }}</div>
+          <div class="kpi-value">
+            {{ value if value is not none else "n/a" }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- CHARTS -->
+    <div class="grid">
+      <div class="card">{{ plots.rent_price_hist | safe }}</div>
+      <div class="card">{{ plots.rent_time_trend | safe }}</div>
+    </div>
+
+    <!-- TABLES -->
+    <h2>Raw Tables</h2>
+
+    <div class="section">
+      <h3>Rentals (BNA_RENTALS)</h3>
+      <div class="table-container card full">
+        {% include "_rentals_table.html" %}
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>For Sale (BNA_FORSALE)</h3>
+      <div class="table-container card full">
+        {% include "_forsale_table.html" %}
+      </div>
+    </div>
+  </body>
+</html>

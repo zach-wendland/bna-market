@@ -1,16 +1,16 @@
-{% if data2 and data2|length > 0 %}
+{% if forsale is not none and forsale|length > 0 %}
 <table>
   <thead>
     <tr>
-      {% for k in data2[0].keys() %}
+      {% for k in forsale.columns %}
         <th>{{ k }}</th>
       {% endfor %}
     </tr>
   </thead>
   <tbody>
-    {% for r in data2 %}
+    {% for _, row in forsale.iterrows() %}
       <tr>
-        {% for v in r %}
+        {% for v in row %}
           <td>{{ v }}</td>
         {% endfor %}
       </tr>
@@ -18,5 +18,5 @@
   </tbody>
 </table>
 {% else %}
-<div class="empty">No rows found in dataset2.</div>
+<div class="empty">No rows found in BNA_FORSALE.</div>
 {% endif %}

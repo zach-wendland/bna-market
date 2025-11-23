@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 import json
 import time 
-
+import dotenv
 
 def forSalePipe01() -> pd.DataFrame:
     url = "https://zillow-com1.p.rapidapi.com/propertyByPolygon"
