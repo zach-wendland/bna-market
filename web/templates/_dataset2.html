@@ -1,0 +1,22 @@
+{% if data2 and data2|length > 0 %}
+<table>
+  <thead>
+    <tr>
+      {% for k in data2[0].keys() %}
+        <th>{{ k }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in data2 %}
+      <tr>
+        {% for v in r %}
+          <td>{{ v }}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">No rows found in dataset2.</div>
+{% endif %}
