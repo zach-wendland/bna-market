@@ -67,6 +67,22 @@ def rentalPipe01() -> pd.DataFrame:
         # print(f"\nDataFrame shape: {df.shape}") # Uncomment for debugging
     else:
         print("\nNo properties were collected from any page to create a DataFrame.")
+
+    def parse_units(x):
+            if isinstance(x, list): return x
+            if not isinstance(x, str): return None
+            try: return ast.literal_eval(x)
+            except: pass
+            try:
+                s = x.replace("False","false").replace("True","true")
+                s = re.sub(r"'", '"', s)
+                return json.loads(s)
+            except: 
+                return None
+    df["parsed"] = df["units"].apply(parse_units)
+    df = df.explode("parsed")
+
+    new_cols = df["parsed"].apply(pd.Series).add_suffix("_unit")
+    df = pd.concat([df.drop(columns=["parsed"]), new_cols], axis=1)
+
     return df
-
-
