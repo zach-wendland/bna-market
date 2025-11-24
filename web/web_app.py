@@ -20,15 +20,12 @@ def dashboard():
 
     kpis = {
         "Total Rental Listings": len(rentals),
-        "Avg Rental Price": float(rentals["price"].mean()) if "price" in rentals else None,
-        "New Rentals This Week": int(
-            (pd.to_datetime(rentals["scraped_at"]).dt.date
-             >= pd.Timestamp.today().date() - pd.Timedelta(days=7)).sum()
-        ) if "scraped_at" in rentals else None
+        "Avg Rental Price": round(float(rentals["price"].mean()) if "price" in rentals else None),
+        "Average DOM": round(pd.to_numeric(rentals["daysOnZillow"]).mean())
     }
 
     fig_price_hist = px.histogram(
-        rentals, x="price", nbins=30, title="Rental Price Distribution"
+        rentals, x="price", title="Rental Price Distribution"
     )
 
     fig_time_trend = (
