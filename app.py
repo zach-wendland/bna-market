@@ -15,7 +15,6 @@ def updateSalesTable():
 
     conn.close()
 
-
 def updateRentalsTable():
     conn = sqlite3.connect('BNASFR02.DB')
 
