@@ -1,7 +1,8 @@
-import stresmlit as st
 from pipelines.rentalPipe import rentalPipe01
 from fredapi import Fred
 import Folium
+import pandas as pd
+import requests 
 
 rental_map_df = rentalPipe01()
 
