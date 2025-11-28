@@ -3,6 +3,7 @@ import pandas as pd
 import json, ast
 import time 
 import numpy as np
+import re
 
 
 def rentalPipe01() -> pd.DataFrame:
