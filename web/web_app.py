@@ -5,7 +5,7 @@ import plotly.io as pio
 from flask import Flask, render_template
 
 app = Flask(__name__, static_folder="static")
-DB_PATH = "BNASFR02.db"
+DB_PATH = "../BNASFR02.DB"
 
 def read_df(table):
     con = sqlite3.connect(DB_PATH)
