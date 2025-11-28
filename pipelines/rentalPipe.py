@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-
+load_dotenv()
+RAPID_API_KEY = os.getenv("RAPID_API_KEY")
 
 
 def rentalPipe01() -> pd.DataFrame:
@@ -26,11 +27,8 @@ def rentalPipe01() -> pd.DataFrame:
         "buildYearMin": "1979"
     }
 
-    api_key = os.getenv("RAPID_API_KEY")
-    print(f"DEBUG: API Key length: {len(api_key) if api_key else 0}, Last 5 chars: [{api_key[-5:] if api_key else 'NONE'}]")
-
     headers = {
-        "x-rapidapi-key": api_key,
+        "x-rapidapi-key": RAPID_API_KEY,
         "x-rapidapi-host": "zillow-com1.p.rapidapi.com"
     }
 

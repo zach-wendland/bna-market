@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+RAPID_API_KEY = os.getenv("RAPID_API_KEY")
 
 def forSalePipe01() -> pd.DataFrame:
     url = "https://zillow-com1.p.rapidapi.com/propertyByPolygon"
@@ -23,7 +24,7 @@ def forSalePipe01() -> pd.DataFrame:
     }
 
     headers = {
-        "x-rapidapi-key": os.getenv("RAPID_API_KEY"),
+        "x-rapidapi-key": RAPID_API_KEY,
         "x-rapidapi-host": "zillow-com1.p.rapidapi.com"
     }
 
@@ -71,3 +72,6 @@ def forSalePipe01() -> pd.DataFrame:
         print("\nNo properties were collected from any page to create a DataFrame.")
     # df.to_csv("test1.csv")
     return df
+print(forSalePipe01())
+
+
