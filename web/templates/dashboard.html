@@ -1,47 +1,125 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>BNA Listings Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BNA Real Estate Market Dashboard</title>
     <link rel="stylesheet" href="/static/stylesheet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   </head>
 
   <body>
-    <h1>Dashboard</h1>
+    <!-- HEADER -->
+    <header class="header">
+      <div class="container">
+        <h1 class="header-title">Nashville Real Estate Market Dashboard</h1>
+        <p class="header-subtitle">Comprehensive market analysis for the BNA metro area</p>
+      </div>
+    </header>
 
-    <!-- KPI SCORECARDS -->
-    <div class="kpi-row">
-      {% for label, value in kpis.items() %}
-        <div class="kpi-card">
-          <div class="kpi-label">{{ label }}</div>
-          <div class="kpi-value">
-            {{ value if value is not none else "n/a" }}
+    <div class="container">
+      <!-- PROPERTY LISTINGS SECTION -->
+      <section class="section">
+        <h2 class="section-title">Property Listings Overview</h2>
+
+        <div class="kpi-row">
+          {% for label, value in property_kpis.items() %}
+            <div class="kpi-card">
+              <div class="kpi-label">{{ label }}</div>
+              <div class="kpi-value">{{ value }}</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="grid-2">
+          <div class="card">{{ plots.rent_price_hist | safe }}</div>
+          <div class="card">{{ plots.sale_price_hist | safe }}</div>
+        </div>
+      </section>
+
+      <!-- ECONOMIC INDICATORS SECTION -->
+      {% if fred_kpis %}
+      <section class="section">
+        <h2 class="section-title">Market Economic Indicators</h2>
+        <p class="section-description">Latest FRED data for Nashville MSA</p>
+
+        <div class="kpi-row-wide">
+          {% for label, value in fred_kpis.items() %}
+            <div class="kpi-card economic">
+              <div class="kpi-label">{{ label }}</div>
+              <div class="kpi-value">{{ value }}</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if fred_charts %}
+        <div class="grid-2">
+          {% if fred_charts.median_price %}
+            <div class="card">{{ fred_charts.median_price | safe }}</div>
+          {% endif %}
+          {% if fred_charts.active_listings %}
+            <div class="card">{{ fred_charts.active_listings | safe }}</div>
+          {% endif %}
+          {% if fred_charts.employment %}
+            <div class="card">{{ fred_charts.employment | safe }}</div>
+          {% endif %}
+          {% if fred_charts.dom %}
+            <div class="card">{{ fred_charts.dom | safe }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <!-- RAW DATA TABLES SECTION -->
+      <section class="section">
+        <h2 class="section-title">Detailed Listings Data</h2>
+
+        <div class="tabs">
+          <button class="tab-button active" onclick="showTab('rentals')">Rental Listings</button>
+          <button class="tab-button" onclick="showTab('forsale')">For-Sale Listings</button>
+        </div>
+
+        <div id="rentals-tab" class="tab-content active">
+          <div class="table-container card">
+            {% include "_rentals_table.html" %}
           </div>
         </div>
-      {% endfor %}
+
+        <div id="forsale-tab" class="tab-content">
+          <div class="table-container card">
+            {% include "_forsale_table.html" %}
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- CHARTS -->
-    <div class="grid">
-      <div class="card">{{ plots.rent_price_hist | safe }}</div>
-      <div class="card">{{ plots.rent_time_trend | safe }}</div>
-    </div>
-
-    <!-- TABLES -->
-    <h2>Raw Tables</h2>
-
-    <div class="section">
-      <h3>Rentals (BNA_RENTALS)</h3>
-      <div class="table-container card full">
-        {% include "_rentals_table.html" %}
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container">
+        <p>Data sources: Zillow (via RapidAPI) • Federal Reserve Economic Data (FRED)</p>
+        <p class="footer-note">Dashboard updated daily • Nashville MSA Market Analysis</p>
       </div>
-    </div>
+    </footer>
 
-    <div class="section">
-      <h3>For Sale (BNA_FORSALE)</h3>
-      <div class="table-container card full">
-        {% include "_forsale_table.html" %}
-      </div>
-    </div>
+    <script>
+      function showTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+
+        // Remove active class from all buttons
+        document.querySelectorAll('.tab-button').forEach(button => {
+          button.classList.remove('active');
+        });
+
+        // Show selected tab content
+        document.getElementById(tabName + '-tab').classList.add('active');
+
+        // Add active class to clicked button
+        event.target.classList.add('active');
+      }
+    </script>
   </body>
 </html>

@@ -3,6 +3,7 @@ import pandas as pd
 import json
 from pipelines.forSale import forSalePipe01
 from pipelines.rentalPipe import rentalPipe01
+from pipelines.otherMetricsPipe import fredMetricsPipe01
 
 def updateSalesTable():
     conn = sqlite3.connect('BNASFR02.DB')
@@ -46,6 +47,26 @@ def updateRentalsTable():
 
     conn.close()
 
+def updateFredMetricsTable():
+    conn = sqlite3.connect('BNASFR02.DB')
+
+    df = fredMetricsPipe01().copy()
+
+    # Read existing data
+    try:
+        existing_df = pd.read_sql_query("SELECT * FROM BNA_FRED_METRICS", conn)
+        # Merge and deduplicate based on date + series_id
+        df = pd.concat([existing_df, df]).drop_duplicates(
+            subset=['date', 'series_id'], keep='last'
+        )
+    except:
+        pass  # Table doesn't exist yet, will create it
+
+    df.to_sql(name='BNA_FRED_METRICS', con=conn, if_exists='replace', index=False)
+
+    conn.close()
+
 # Uncomment to run
-updateRentalsTable()  
+updateRentalsTable()
 updateSalesTable()
+updateFredMetricsTable()
