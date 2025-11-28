@@ -10,6 +10,12 @@ def updateSalesTable():
 
     df = forSalePipe01().copy()
 
+    # Skip if no data was fetched
+    if df.empty:
+        print("Skipping BNA_FORSALE table update - no data available")
+        conn.close()
+        return
+
     # Read existing data
     try:
         existing_df = pd.read_sql_query("SELECT * FROM BNA_FORSALE", conn)
@@ -30,6 +36,12 @@ def updateRentalsTable():
     conn = sqlite3.connect('BNASFR02.DB')
 
     df = rentalPipe01().copy()
+
+    # Skip if no data was fetched
+    if df.empty:
+        print("Skipping BNA_RENTALS table update - no data available")
+        conn.close()
+        return
 
     # Read existing data
     try:
@@ -52,6 +64,16 @@ def updateFredMetricsTable():
 
     df = fredMetricsPipe01().copy()
 
+    # Skip if no data was fetched
+    if df.empty:
+        print("Skipping BNA_FRED_METRICS table update - no data available")
+        conn.close()
+        return
+
+    # Convert date column to string for SQLite compatibility
+    if 'date' in df.columns:
+        df['date'] = df['date'].astype(str)
+
     # Read existing data
     try:
         existing_df = pd.read_sql_query("SELECT * FROM BNA_FRED_METRICS", conn)
@@ -65,6 +87,7 @@ def updateFredMetricsTable():
     df.to_sql(name='BNA_FRED_METRICS', con=conn, if_exists='replace', index=False)
 
     conn.close()
+    print(f"Successfully updated BNA_FRED_METRICS table with {len(df)} total records")
 
 # Uncomment to run
 updateRentalsTable()

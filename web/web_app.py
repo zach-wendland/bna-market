@@ -16,9 +16,18 @@ def read_df(table):
 
 @app.route("/")
 def dashboard():
-    # Read property data
-    rentals = read_df("BNA_RENTALS")
-    forsale = read_df("BNA_FORSALE")
+    # Read property data with error handling
+    try:
+        rentals = read_df("BNA_RENTALS")
+    except Exception as e:
+        print(f"Warning: Could not read BNA_RENTALS table: {e}")
+        rentals = pd.DataFrame()
+
+    try:
+        forsale = read_df("BNA_FORSALE")
+    except Exception as e:
+        print(f"Warning: Could not read BNA_FORSALE table: {e}")
+        forsale = pd.DataFrame()
 
     # Read FRED metrics data
     try:
@@ -29,10 +38,10 @@ def dashboard():
 
     # Property KPIs
     property_kpis = {
-        "Total Rental Listings": len(rentals),
-        "Avg Rental Price": f"${round(float(rentals['price'].mean())):,}" if "price" in rentals.columns and len(rentals) > 0 else "N/A",
-        "Total For-Sale Listings": len(forsale),
-        "Avg Sale Price": f"${round(float(forsale['price'].mean())):,}" if "price" in forsale.columns and len(forsale) > 0 else "N/A",
+        "Total Rental Listings": len(rentals) if not rentals.empty else 0,
+        "Avg Rental Price": f"${round(float(rentals['price'].mean())):,}" if not rentals.empty and "price" in rentals.columns else "N/A",
+        "Total For-Sale Listings": len(forsale) if not forsale.empty else 0,
+        "Avg Sale Price": f"${round(float(forsale['price'].mean())):,}" if not forsale.empty and "price" in forsale.columns else "N/A",
     }
 
     # FRED Economic KPIs (latest values)
@@ -64,34 +73,54 @@ def dashboard():
                     fred_kpis[display_name] = f"${int(value):,}"
 
     # Rental price histogram
-    fig_rent_hist = px.histogram(
-        rentals,
-        x="price",
-        title="Rental Price Distribution",
-        labels={'price': 'Monthly Rent ($)', 'count': 'Number of Listings'},
-        color_discrete_sequence=['#1f77b4']
-    )
-    fig_rent_hist.update_layout(
-        template="plotly_white",
-        font=dict(family="Arial, sans-serif", size=12),
-        title_font_size=16,
-        showlegend=False
-    )
+    if not rentals.empty and "price" in rentals.columns:
+        fig_rent_hist = px.histogram(
+            rentals,
+            x="price",
+            title="Rental Price Distribution",
+            labels={'price': 'Monthly Rent ($)', 'count': 'Number of Listings'},
+            color_discrete_sequence=['#1f77b4']
+        )
+        fig_rent_hist.update_layout(
+            template="plotly_white",
+            font=dict(family="Arial, sans-serif", size=12),
+            title_font_size=16,
+            showlegend=False
+        )
+    else:
+        fig_rent_hist = go.Figure()
+        fig_rent_hist.add_annotation(
+            text="No rental data available. Please run 'python app.py' to populate the database.",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=14, color="gray")
+        )
+        fig_rent_hist.update_layout(title="Rental Price Distribution", template="plotly_white")
 
     # For-sale price histogram
-    fig_sale_hist = px.histogram(
-        forsale,
-        x="price",
-        title="For-Sale Price Distribution",
-        labels={'price': 'Sale Price ($)', 'count': 'Number of Listings'},
-        color_discrete_sequence=['#2ca02c']
-    )
-    fig_sale_hist.update_layout(
-        template="plotly_white",
-        font=dict(family="Arial, sans-serif", size=12),
-        title_font_size=16,
-        showlegend=False
-    )
+    if not forsale.empty and "price" in forsale.columns:
+        fig_sale_hist = px.histogram(
+            forsale,
+            x="price",
+            title="For-Sale Price Distribution",
+            labels={'price': 'Sale Price ($)', 'count': 'Number of Listings'},
+            color_discrete_sequence=['#2ca02c']
+        )
+        fig_sale_hist.update_layout(
+            template="plotly_white",
+            font=dict(family="Arial, sans-serif", size=12),
+            title_font_size=16,
+            showlegend=False
+        )
+    else:
+        fig_sale_hist = go.Figure()
+        fig_sale_hist.add_annotation(
+            text="No for-sale data available. Please run 'python app.py' to populate the database.",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=14, color="gray")
+        )
+        fig_sale_hist.update_layout(title="For-Sale Price Distribution", template="plotly_white")
 
     # FRED metrics time series charts
     fred_charts = {}

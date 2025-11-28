@@ -26,8 +26,11 @@ def rentalPipe01() -> pd.DataFrame:
         "buildYearMin": "1979"
     }
 
+    api_key = os.getenv("RAPID_API_KEY")
+    print(f"DEBUG: API Key length: {len(api_key) if api_key else 0}, Last 5 chars: [{api_key[-5:] if api_key else 'NONE'}]")
+
     headers = {
-        "x-rapidapi-key": os.getenv("RAPID_API_KEY"),
+        "x-rapidapi-key": api_key,
         "x-rapidapi-host": "zillow-com1.p.rapidapi.com"
     }
 
@@ -65,7 +68,7 @@ def rentalPipe01() -> pd.DataFrame:
             print(f"An unexpected error occurred on page {current_page}: {e}")
             break 
 
-    df = pd.DataFrame()  
+    df = pd.DataFrame()
     if all_properties:
         df = pd.DataFrame(all_properties)
         print(f"Total properties collected: {len(all_properties)}")
@@ -73,22 +76,25 @@ def rentalPipe01() -> pd.DataFrame:
         # print(f"\nDataFrame shape: {df.shape}") # Uncomment for debugging
     else:
         print("\nNo properties were collected from any page to create a DataFrame.")
+        return pd.DataFrame()  # Return empty DataFrame if no data
 
-    def parse_units(x):
-            if isinstance(x, list): return x
-            if not isinstance(x, str): return None
-            try: return ast.literal_eval(x)
-            except: pass
-            try:
-                s = x.replace("False","false").replace("True","true")
-                s = re.sub(r"'", '"', s)
-                return json.loads(s)
-            except: 
-                return None
-    df["parsed"] = df["units"].apply(parse_units)
-    df = df.explode("parsed")
+    # Only parse units if the column exists
+    if "units" in df.columns:
+        def parse_units(x):
+                if isinstance(x, list): return x
+                if not isinstance(x, str): return None
+                try: return ast.literal_eval(x)
+                except: pass
+                try:
+                    s = x.replace("False","false").replace("True","true")
+                    s = re.sub(r"'", '"', s)
+                    return json.loads(s)
+                except:
+                    return None
+        df["parsed"] = df["units"].apply(parse_units)
+        df = df.explode("parsed")
 
-    new_cols = df["parsed"].apply(pd.Series).add_suffix("_unit")
-    df = pd.concat([df.drop(columns=["parsed"]), new_cols], axis=1)
+        new_cols = df["parsed"].apply(pd.Series).add_suffix("_unit")
+        df = pd.concat([df.drop(columns=["parsed"]), new_cols], axis=1)
 
     return df
