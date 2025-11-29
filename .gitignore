@@ -22,7 +22,6 @@ env/
 .idea/
 *.swp
 *.swo
-CLAUDE.md
 
 *.log
 logs/
