@@ -72,6 +72,6 @@ def forSalePipe01() -> pd.DataFrame:
         print("\nNo properties were collected from any page to create a DataFrame.")
     # df.to_csv("test1.csv")
     return df
-print(forSalePipe01())
 
-
+if __name__ == "__main__":
+    print(forSalePipe01())

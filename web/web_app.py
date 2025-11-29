@@ -4,9 +4,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 from flask import Flask, render_template
+import os
 
 app = Flask(__name__, static_folder="static")
-DB_PATH = "../BNASFR02.DB"
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "BNASFR02.DB")
 
 def read_df(table):
     con = sqlite3.connect(DB_PATH)
