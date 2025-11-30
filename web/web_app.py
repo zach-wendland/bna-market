@@ -5,9 +5,17 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from flask import Flask, render_template
 import os
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 app = Flask(__name__, static_folder="static")
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "BNASFR02.DB")
+
+# Register API blueprint
+from web.api import api_bp
+app.register_blueprint(api_bp)
 
 def read_df(table):
     con = sqlite3.connect(DB_PATH)

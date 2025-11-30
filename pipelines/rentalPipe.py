@@ -1,97 +1,92 @@
-import requests
+"""
+Rental property pipeline for BNA Market
+
+Fetches rental property listings from Zillow API with unit parsing.
+"""
 import pandas as pd
-import json, ast
-import time 
-import numpy as np
+import json
+import ast
 import re
 from dotenv import load_dotenv
 import os
+from pipelines.zillow_base import fetch_zillow_listings
+from config.settings import ZILLOW_CONFIG
+from utils.logger import setup_logger
 
 load_dotenv()
-RAPID_API_KEY = os.getenv("RAPID_API_KEY")
+logger = setup_logger('rental_pipeline')
+
+
+def parse_units(x):
+    """
+    Parse units field from string representation to list
+
+    Args:
+        x: Units data (could be list, string, or other)
+
+    Returns:
+        Parsed list or None if parsing fails
+    """
+    if isinstance(x, list):
+        return x
+    if not isinstance(x, str):
+        return None
+
+    # Try literal_eval first
+    try:
+        return ast.literal_eval(x)
+    except (ValueError, SyntaxError):
+        pass
+
+    # Try JSON parsing with boolean replacements
+    try:
+        s = x.replace("False", "false").replace("True", "true")
+        s = re.sub(r"'", '"', s)
+        return json.loads(s)
+    except (ValueError, json.JSONDecodeError):
+        return None
 
 
 def rentalPipe01() -> pd.DataFrame:
-    url = "https://zillow-com1.p.rapidapi.com/propertyByPolygon"
-    polygon_coords = "-87.2316 36.5227, -86.3316 36.5227, -86.3316 35.8027, -87.2316 35.8027, -87.2316 36.5227"
+    """
+    Fetch rental property listings from Zillow API
 
-    base_querystring = { 
-        "polygon": polygon_coords,
-        "status_type": "ForRent",
-        "minPrice": "1400",
-        "maxPrice": "3200",
-        "bathsMin": "1", "bathsMax": "4",
-        "bedsMin": "1", "bedsMax": "4",
-        "sqftMin": "550", "sqftMax": "6000",
-        "buildYearMin": "1979"
-    }
+    Returns:
+        DataFrame with rental property listings, with units exploded if present
 
-    headers = {
-        "x-rapidapi-key": RAPID_API_KEY,
-        "x-rapidapi-host": "zillow-com1.p.rapidapi.com"
-    }
+    Raises:
+        ValueError: If RAPID_API_KEY is not found in environment
+    """
+    api_key = os.getenv("RAPID_API_KEY")
+    if not api_key:
+        raise ValueError("RAPID_API_KEY not found in environment")
 
-    # pagination logic
-    all_properties = [] # collects data from pages
-    current_page = 1
-    max_pages_to_fetch = 20 # max 20
+    df = fetch_zillow_listings(
+        status_type='ForRent',
+        config=ZILLOW_CONFIG['rentals'],
+        api_key=api_key,
+        max_pages=ZILLOW_CONFIG['rentals']['max_pages'],
+        page_delay=ZILLOW_CONFIG['rentals']['page_delay']
+    )
 
-    # iterate over data
-    while current_page <= max_pages_to_fetch:
-        querystring = base_querystring.copy()
-
-        querystring['page'] = current_page
-
-        try:
-            response = requests.get(url, headers=headers, params=querystring)
-            response.raise_for_status()
-
-            full_response_data = response.json()
-            page_properties = full_response_data.get('props', [])
-
-
-            all_properties.extend(page_properties)
-
-            current_page += 1
-            time.sleep(0.5)
-
-        except requests.exceptions.RequestException as e:
-            print(f"API request failed on page {current_page}: {e}")
-            break 
-        except json.JSONDecodeError:
-            print(f"Error: Could not decode JSON from response on page {current_page}. Content: {response.text}")
-            break 
-        except Exception as e:
-            print(f"An unexpected error occurred on page {current_page}: {e}")
-            break 
-
-    df = pd.DataFrame()
-    if all_properties:
-        df = pd.DataFrame(all_properties)
-        print(f"Total properties collected: {len(all_properties)}")
-        # print(df.head())  # Uncomment for debugging
-        # print(f"\nDataFrame shape: {df.shape}") # Uncomment for debugging
-    else:
-        print("\nNo properties were collected from any page to create a DataFrame.")
-        return pd.DataFrame()  # Return empty DataFrame if no data
-
-    # Only parse units if the column exists
-    if "units" in df.columns:
-        def parse_units(x):
-                if isinstance(x, list): return x
-                if not isinstance(x, str): return None
-                try: return ast.literal_eval(x)
-                except: pass
-                try:
-                    s = x.replace("False","false").replace("True","true")
-                    s = re.sub(r"'", '"', s)
-                    return json.loads(s)
-                except:
-                    return None
+    # Only parse units if the column exists and DataFrame is not empty
+    if not df.empty and "units" in df.columns:
+        logger.info("Parsing units column for multi-unit properties")
         df["parsed"] = df["units"].apply(parse_units)
         df = df.explode("parsed")
 
+        # Extract unit fields and add as separate columns
         new_cols = df["parsed"].apply(pd.Series).add_suffix("_unit")
         df = pd.concat([df.drop(columns=["parsed"]), new_cols], axis=1)
+        logger.info(f"Units parsed and exploded into {len(new_cols.columns)} unit-specific columns")
 
     return df
+
+
+if __name__ == "__main__":
+    # Test the pipeline
+    df = rentalPipe01()
+    print(f"\nCollected {len(df)} rental properties")
+    if not df.empty:
+        print(f"DataFrame shape: {df.shape}")
+        print(f"Columns: {list(df.columns)[:15]}...")  # Show first 15 columns

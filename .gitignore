@@ -65,3 +65,15 @@ htmlcov/
 *.bak
 *.tmp
 *.orig
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Test files
+test_*.csv
+*.test

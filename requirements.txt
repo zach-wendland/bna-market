@@ -1,6 +1,14 @@
-requests
-pandas
-plotly
-flask
-fredapi
-python-dotenv
+requests==2.31.0
+pandas==2.1.4
+plotly==5.18.0
+flask==3.0.0
+fredapi==0.5.1
+python-dotenv==1.0.0
+scipy==1.11.4
+statsmodels==0.14.1
+
+# Development dependencies (optional)
+# pytest==7.4.3
+# black==23.12.1
+# flake8==6.1.0
+# mypy==1.7.1

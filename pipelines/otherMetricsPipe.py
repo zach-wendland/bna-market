@@ -1,45 +1,82 @@
+"""
+FRED economic indicators pipeline for BNA Market
+
+Fetches Nashville MSA economic indicators from FRED API.
+"""
 from fredapi import Fred
 import pandas as pd
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from utils.logger import setup_logger
+from utils.retry import retry_with_backoff
+from utils.validators import validate_fred_dataframe
+from config.settings import FRED_CONFIG
 
 load_dotenv()
+logger = setup_logger('fred_pipeline')
+
+
+@retry_with_backoff(max_retries=3, base_delay=1.0, retry_on=(Exception,))
+def fetch_fred_series(fred: Fred, series_id: str, start_date: str, end_date: str) -> pd.Series:
+    """
+    Fetch single FRED series with retry logic
+
+    Args:
+        fred: FRED API client instance
+        series_id: FRED series identifier
+        start_date: Start date in YYYY-MM-DD format
+        end_date: End date in YYYY-MM-DD format
+
+    Returns:
+        Time series data
+
+    Raises:
+        Exception: On API errors
+    """
+    return fred.get_series(
+        series_id,
+        observation_start=start_date,
+        observation_end=end_date
+    )
 
 
 def fredMetricsPipe01() -> pd.DataFrame:
     """
-    Fetch FRED economic indicators for Nashville MSA.
-    Returns a long-format DataFrame with 15 years of historical data.
+    Fetch FRED economic indicators for Nashville MSA
+
+    Returns:
+        Long-format DataFrame with economic indicator time series data
+        Columns: date, metric_name, series_id, value
+
+    Raises:
+        ValueError: If FRED_API_KEY is not found in environment
     """
-    fred = Fred(api_key=os.getenv("FRED_API_KEY"))
+    api_key = os.getenv("FRED_API_KEY")
+    if not api_key:
+        raise ValueError("FRED_API_KEY not found in environment")
 
-    # Define FRED series IDs for Nashville MSA economic indicators
-    series_ids = {
-        'active_listings': 'ACTLISCOU34980',
-        'median_price': 'MEDLISPRI34980',
-        'median_dom': 'MEDDAYONMAR34980',
-        'employment_non_farm': 'NASH947NA',
-        'msa_population': 'NVLPOP',
-        'median_pp_sqft': 'MEDLISPRIPERSQUFEE34980',
-        'median_listing_price_change': 'MEDLISPRIMM47037',
-        'msa_per_capita_income': 'NASH947PCPI'
-    }
+    fred = Fred(api_key=api_key)
 
-    # Calculate date range: 15 years back from today (11/28/2025)
-    end_date = datetime(2025, 11, 28)
-    start_date = end_date - timedelta(days=15*365)
+    # Calculate date range: configurable years back from today
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=FRED_CONFIG['years_historical'] * 365)
+
+    logger.info(f"Fetching FRED data from {start_date.date()} to {end_date.date()}")
 
     # Fetch all series and combine into single DataFrame
     all_data = []
 
-    for metric_name, series_id in series_ids.items():
+    for metric_name, series_id in FRED_CONFIG['series_ids'].items():
         try:
+            logger.info(f"Fetching {metric_name} ({series_id})")
+
             # Fetch series data with observation start/end dates
-            series = fred.get_series(
+            series = fetch_fred_series(
+                fred,
                 series_id,
-                observation_start=start_date.strftime('%Y-%m-%d'),
-                observation_end=end_date.strftime('%Y-%m-%d')
+                start_date.strftime('%Y-%m-%d'),
+                end_date.strftime('%Y-%m-%d')
             )
 
             # Convert to DataFrame
@@ -50,16 +87,29 @@ def fredMetricsPipe01() -> pd.DataFrame:
             df.rename(columns={'index': 'date'}, inplace=True)
 
             all_data.append(df)
-            print(f"Fetched {len(df)} observations for {metric_name}")
+            logger.debug(f"Fetched {len(df)} observations for {metric_name}")
 
         except Exception as e:
-            print(f"Error fetching {metric_name} ({series_id}): {e}")
+            logger.warning(f"Error fetching {metric_name} ({series_id}): {e}")
             continue
 
     if all_data:
         result_df = pd.concat(all_data, ignore_index=True)
-        print(f"\nTotal observations collected: {len(result_df)}")
+        logger.info(f"Total observations collected: {len(result_df)}")
+
+        # Validate the DataFrame
+        result_df = validate_fred_dataframe(result_df)
+
         return result_df
     else:
-        print("No FRED data was collected.")
+        logger.warning("No FRED data was collected")
         return pd.DataFrame(columns=['date', 'metric_name', 'series_id', 'value'])
+
+
+if __name__ == "__main__":
+    # Test the pipeline
+    df = fredMetricsPipe01()
+    print(f"\nCollected {len(df)} FRED metric observations")
+    if not df.empty:
+        print(f"Metrics: {df['metric_name'].unique().tolist()}")
+        print(f"Date range: {df['date'].min()} to {df['date'].max()}")
