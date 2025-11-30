@@ -49,14 +49,14 @@ ZILLOW_CONFIG = {
 # FRED API configuration
 FRED_CONFIG = {
     'series_ids': {
-        'active_listings': 'ACTLISCOUM31540',
-        'median_price': 'MEDLISPRIM31540',
-        'median_dom': 'MEDDAYONMAR31540',
-        'employment_non_farm': 'NASH534NA',
-        'msa_population': 'CBSA34980POP',
-        'median_pp_sqft': 'MEDLISPRIPERSQUFEM31540',
-        'median_listing_price_change': 'MEDLISPRI31540',
-        'msa_per_capita_income': 'PCPI34980'
+        'active_listings': 'ACTLISCOU34980',
+        'median_price': 'MEDLISPRI34980',
+        'median_dom': 'MEDDAYONMAR34980',
+        'employment_non_farm': 'NASH947NA',
+        'msa_population': 'NVLPOP',
+        'median_pp_sqft': 'MEDLISPRIPERSQUFEE34980',
+        'median_listing_price_change': 'MEDLISPRI34980',
+        'msa_per_capita_income': 'NASH947PCPI'
     },
     'years_historical': 15
 }

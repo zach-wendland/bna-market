@@ -6,6 +6,7 @@ Fetches Nashville MSA economic indicators from FRED API.
 from fredapi import Fred
 import pandas as pd
 import os
+import requests
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from utils.logger import setup_logger
@@ -17,7 +18,7 @@ load_dotenv()
 logger = setup_logger('fred_pipeline')
 
 
-@retry_with_backoff(max_retries=3, base_delay=1.0, retry_on=(Exception,))
+@retry_with_backoff(max_retries=3, base_delay=1.0, retry_on=(requests.exceptions.RequestException,))
 def fetch_fred_series(fred: Fred, series_id: str, start_date: str, end_date: str) -> pd.Series:
     """
     Fetch single FRED series with retry logic
@@ -66,8 +67,10 @@ def fredMetricsPipe01() -> pd.DataFrame:
 
     # Fetch all series and combine into single DataFrame
     all_data = []
+    series_list = list(FRED_CONFIG['series_ids'].items())
+    failed_series = []
 
-    for metric_name, series_id in FRED_CONFIG['series_ids'].items():
+    for metric_name, series_id in series_list:
         try:
             logger.info(f"Fetching {metric_name} ({series_id})")
 
@@ -79,19 +82,36 @@ def fredMetricsPipe01() -> pd.DataFrame:
                 end_date.strftime('%Y-%m-%d')
             )
 
-            # Convert to DataFrame
+            # Convert to DataFrame with date formatting
+            # Note: Date is converted to string format here for SQLite compatibility.
+            # The validate_fred_dataframe() function also handles date conversion defensively
+            # in case data format varies from different sources.
             df = series.to_frame(name='value')
             df['metric_name'] = metric_name
             df['series_id'] = series_id
             df.reset_index(inplace=True)
             df.rename(columns={'index': 'date'}, inplace=True)
+            df['date'] = df['date'].dt.strftime('%Y-%m-%d')
 
             all_data.append(df)
             logger.debug(f"Fetched {len(df)} observations for {metric_name}")
 
         except Exception as e:
             logger.warning(f"Error fetching {metric_name} ({series_id}): {e}")
+            failed_series.append(metric_name)
             continue
+
+    # Alert if too many series failed (more than 50%)
+    success_count = len(all_data)
+    total_count = len(series_list)
+    failure_count = total_count - success_count
+
+    if failure_count > total_count * 0.5:
+        logger.error(f"CRITICAL: {failure_count}/{total_count} FRED series failed to fetch. "
+                     f"Failed series: {', '.join(failed_series)}")
+    elif failure_count > 0:
+        logger.warning(f"WARNING: {failure_count}/{total_count} FRED series failed to fetch. "
+                       f"Failed series: {', '.join(failed_series)}")
 
     if all_data:
         result_df = pd.concat(all_data, ignore_index=True)

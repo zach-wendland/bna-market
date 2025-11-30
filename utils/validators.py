@@ -84,6 +84,14 @@ def validate_fred_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     Validate FRED metrics DataFrame
 
+    Performs defensive validation on FRED data including:
+    - Checking for required columns (date, metric_name, series_id, value)
+    - Removing rows with null values
+    - Ensuring date column is in string format for SQLite storage
+
+    Note: Date conversion is defensive - the pipeline should convert dates to strings,
+    but this validator handles cases where source data format varies.
+
     Args:
         df: DataFrame with FRED economic indicators
 
@@ -106,8 +114,9 @@ def validate_fred_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     initial_count = len(df)
     df = df.dropna(subset=['date', 'value'])
 
-    # Convert date to string for SQLite storage
-    df['date'] = df['date'].astype(str)
+    # Convert date to string for SQLite storage (if not already string)
+    if not pd.api.types.is_string_dtype(df['date']):
+        df['date'] = df['date'].dt.strftime('%Y-%m-%d')
 
     final_count = len(df)
 
