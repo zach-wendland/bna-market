@@ -26,7 +26,8 @@ env/
 *.log
 logs/
 *.out
-
+API_IMPLEMENTATION_SUMMARY.md
+API_QUICKSTART.md
 
 # Windows
 Thumbs.db
@@ -35,6 +36,7 @@ desktop.ini
 $RECYCLE.BIN/
 
 .env
+*_api.py
 *.env
 .env.*
 !.env.example
