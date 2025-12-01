@@ -77,7 +77,7 @@ def dashboard():
                 elif metric_name == 'employment_non_farm':
                     fred_kpis[display_name] = f"{int(value/1000)}K"
                 elif metric_name == 'msa_population':
-                    fred_kpis[display_name] = f"{int(value/1000)}K"
+                    fred_kpis[display_name] = f"{int(value)}K"
                 elif metric_name == 'msa_per_capita_income':
                     fred_kpis[display_name] = f"${int(value):,}"
 
