@@ -17,6 +17,7 @@ import csv
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from web.api import api_bp
+from web.decorators import require_subscription
 from utils.database import get_db_connection
 from utils.logger import setup_logger
 
@@ -30,6 +31,7 @@ def health_check():
 
 
 @api_bp.route("/properties/search", methods=["GET"])
+@require_subscription("properties_search")
 def search_properties():
     """
     Search properties with filters and pagination
@@ -171,6 +173,7 @@ def search_properties():
 
 
 @api_bp.route("/properties/export", methods=["GET"])
+@require_subscription("properties_export")
 def export_properties():
     """
     Export filtered properties as CSV file
