@@ -3,6 +3,7 @@ Logging infrastructure for BNA Market application
 
 Provides structured logging with timestamps, log levels, and both console and file output.
 """
+
 import logging
 import sys
 import os
@@ -33,7 +34,7 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     console_handler.setLevel(level)
 
     # File handler (create logs directory if it doesn't exist)
-    log_dir = 'logs'
+    log_dir = "logs"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
@@ -43,8 +44,7 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
 
     # Formatter with timestamp, logger name, level, and message
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
     console_handler.setFormatter(formatter)
     file_handler.setFormatter(formatter)

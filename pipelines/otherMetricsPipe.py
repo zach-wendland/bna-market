@@ -3,6 +3,7 @@ FRED economic indicators pipeline for BNA Market
 
 Fetches Nashville MSA economic indicators from FRED API.
 """
+
 from fredapi import Fred
 import pandas as pd
 import os
@@ -15,7 +16,7 @@ from utils.validators import validate_fred_dataframe
 from config.settings import FRED_CONFIG
 
 load_dotenv()
-logger = setup_logger('fred_pipeline')
+logger = setup_logger("fred_pipeline")
 
 
 @retry_with_backoff(max_retries=3, base_delay=1.0, retry_on=(requests.exceptions.RequestException,))
@@ -35,11 +36,7 @@ def fetch_fred_series(fred: Fred, series_id: str, start_date: str, end_date: str
     Raises:
         Exception: On API errors
     """
-    return fred.get_series(
-        series_id,
-        observation_start=start_date,
-        observation_end=end_date
-    )
+    return fred.get_series(series_id, observation_start=start_date, observation_end=end_date)
 
 
 def fredMetricsPipe01() -> pd.DataFrame:
@@ -61,13 +58,13 @@ def fredMetricsPipe01() -> pd.DataFrame:
 
     # Calculate date range: configurable years back from today
     end_date = datetime.now()
-    start_date = end_date - timedelta(days=FRED_CONFIG['years_historical'] * 365)
+    start_date = end_date - timedelta(days=FRED_CONFIG["years_historical"] * 365)
 
     logger.info(f"Fetching FRED data from {start_date.date()} to {end_date.date()}")
 
     # Fetch all series and combine into single DataFrame
     all_data = []
-    series_list = list(FRED_CONFIG['series_ids'].items())
+    series_list = list(FRED_CONFIG["series_ids"].items())
     failed_series = []
 
     for metric_name, series_id in series_list:
@@ -76,22 +73,19 @@ def fredMetricsPipe01() -> pd.DataFrame:
 
             # Fetch series data with observation start/end dates
             series = fetch_fred_series(
-                fred,
-                series_id,
-                start_date.strftime('%Y-%m-%d'),
-                end_date.strftime('%Y-%m-%d')
+                fred, series_id, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
             )
 
             # Convert to DataFrame with date formatting
             # Note: Date is converted to string format here for SQLite compatibility.
             # The validate_fred_dataframe() function also handles date conversion defensively
             # in case data format varies from different sources.
-            df = series.to_frame(name='value')
-            df['metric_name'] = metric_name
-            df['series_id'] = series_id
+            df = series.to_frame(name="value")
+            df["metric_name"] = metric_name
+            df["series_id"] = series_id
             df.reset_index(inplace=True)
-            df.rename(columns={'index': 'date'}, inplace=True)
-            df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+            df.rename(columns={"index": "date"}, inplace=True)
+            df["date"] = df["date"].dt.strftime("%Y-%m-%d")
 
             all_data.append(df)
             logger.debug(f"Fetched {len(df)} observations for {metric_name}")
@@ -107,11 +101,15 @@ def fredMetricsPipe01() -> pd.DataFrame:
     failure_count = total_count - success_count
 
     if failure_count > total_count * 0.5:
-        logger.error(f"CRITICAL: {failure_count}/{total_count} FRED series failed to fetch. "
-                     f"Failed series: {', '.join(failed_series)}")
+        logger.error(
+            f"CRITICAL: {failure_count}/{total_count} FRED series failed to fetch. "
+            f"Failed series: {', '.join(failed_series)}"
+        )
     elif failure_count > 0:
-        logger.warning(f"WARNING: {failure_count}/{total_count} FRED series failed to fetch. "
-                       f"Failed series: {', '.join(failed_series)}")
+        logger.warning(
+            f"WARNING: {failure_count}/{total_count} FRED series failed to fetch. "
+            f"Failed series: {', '.join(failed_series)}"
+        )
 
     if all_data:
         result_df = pd.concat(all_data, ignore_index=True)
@@ -123,7 +121,7 @@ def fredMetricsPipe01() -> pd.DataFrame:
         return result_df
     else:
         logger.warning("No FRED data was collected")
-        return pd.DataFrame(columns=['date', 'metric_name', 'series_id', 'value'])
+        return pd.DataFrame(columns=["date", "metric_name", "series_id", "value"])
 
 
 if __name__ == "__main__":

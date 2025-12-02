@@ -11,14 +11,14 @@ from .analytics import (
     calculate_correlations,
     create_correlation_heatmap,
     create_scatter_with_trendline,
-    create_market_indicators_dashboard
+    create_market_indicators_dashboard,
 )
 
 __all__ = [
-    'create_property_map',
-    'create_price_heatmap',
-    'calculate_correlations',
-    'create_correlation_heatmap',
-    'create_scatter_with_trendline',
-    'create_market_indicators_dashboard'
+    "create_property_map",
+    "create_price_heatmap",
+    "calculate_correlations",
+    "create_correlation_heatmap",
+    "create_scatter_with_trendline",
+    "create_market_indicators_dashboard",
 ]

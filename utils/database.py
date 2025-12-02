@@ -3,6 +3,7 @@ Database utilities for BNA Market application
 
 Provides context managers and helper functions for safe database operations.
 """
+
 import sqlite3
 import pandas as pd
 from contextlib import contextmanager
@@ -10,7 +11,7 @@ from typing import Optional
 from utils.logger import setup_logger
 from config.settings import DATABASE_CONFIG
 
-logger = setup_logger('database')
+logger = setup_logger("database")
 
 
 @contextmanager
@@ -28,7 +29,7 @@ def get_db_connection(db_path: Optional[str] = None):
         with get_db_connection() as conn:
             df.to_sql('table_name', conn, if_exists='replace')
     """
-    path = db_path or DATABASE_CONFIG['path']
+    path = db_path or DATABASE_CONFIG["path"]
     conn = sqlite3.connect(path)
     try:
         yield conn

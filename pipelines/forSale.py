@@ -3,6 +3,7 @@ For-sale property pipeline for BNA Market
 
 Fetches for-sale property listings from Zillow API.
 """
+
 from dotenv import load_dotenv
 import os
 import pandas as pd
@@ -27,11 +28,11 @@ def forSalePipe01() -> pd.DataFrame:
         raise ValueError("RAPID_API_KEY not found in environment")
 
     return fetch_zillow_listings(
-        status_type='ForSale',
-        config=ZILLOW_CONFIG['for_sale'],
+        status_type="ForSale",
+        config=ZILLOW_CONFIG["for_sale"],
         api_key=api_key,
-        max_pages=ZILLOW_CONFIG['for_sale']['max_pages'],
-        page_delay=ZILLOW_CONFIG['for_sale']['page_delay']
+        max_pages=ZILLOW_CONFIG["for_sale"]["max_pages"],
+        page_delay=ZILLOW_CONFIG["for_sale"]["page_delay"],
     )
 
 

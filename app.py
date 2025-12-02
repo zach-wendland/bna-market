@@ -3,6 +3,7 @@ ETL orchestration for BNA Market
 
 Coordinates data pipeline execution and database updates.
 """
+
 import pandas as pd
 import json
 from pipelines.forSale import forSalePipe01
@@ -13,7 +14,7 @@ from utils.database import get_db_connection, read_table_safely
 from utils.env_validator import validate_environment
 from config.settings import DATABASE_CONFIG
 
-logger = setup_logger('app')
+logger = setup_logger("app")
 
 
 def updateSalesTable() -> None:
@@ -34,17 +35,17 @@ def updateSalesTable() -> None:
 
     with get_db_connection() as conn:
         # Read existing data
-        existing_df = read_table_safely('BNA_FORSALE', conn)
+        existing_df = read_table_safely("BNA_FORSALE", conn)
 
         # Merge new data with existing, keeping only new rows based on zpid
-        if not existing_df.empty and 'zpid' in df.columns and 'zpid' in existing_df.columns:
-            df = pd.concat([existing_df, df]).drop_duplicates(subset=['zpid'], keep='last')
+        if not existing_df.empty and "zpid" in df.columns and "zpid" in existing_df.columns:
+            df = pd.concat([existing_df, df]).drop_duplicates(subset=["zpid"], keep="last")
             logger.info(f"Merged with {len(existing_df)} existing records")
 
         # Convert dict/list to JSON strings for SQLite
         df = df.map(lambda x: json.dumps(x) if isinstance(x, (dict, list)) else x)
 
-        df.to_sql(name='BNA_FORSALE', con=conn, if_exists='replace', index=False)
+        df.to_sql(name="BNA_FORSALE", con=conn, if_exists="replace", index=False)
         logger.info(f"Updated BNA_FORSALE: {len(df)} total records")
 
 
@@ -66,17 +67,17 @@ def updateRentalsTable() -> None:
 
     with get_db_connection() as conn:
         # Read existing data
-        existing_df = read_table_safely('BNA_RENTALS', conn)
+        existing_df = read_table_safely("BNA_RENTALS", conn)
 
         # Merge new data with existing, keeping only new rows based on zpid
-        if not existing_df.empty and 'zpid' in df.columns and 'zpid' in existing_df.columns:
-            df = pd.concat([existing_df, df]).drop_duplicates(subset=['zpid'], keep='last')
+        if not existing_df.empty and "zpid" in df.columns and "zpid" in existing_df.columns:
+            df = pd.concat([existing_df, df]).drop_duplicates(subset=["zpid"], keep="last")
             logger.info(f"Merged with {len(existing_df)} existing records")
 
         # Convert dict/list to JSON strings for SQLite
         df = df.map(lambda x: json.dumps(x) if isinstance(x, (dict, list)) else x)
 
-        df.to_sql(name='BNA_RENTALS', con=conn, if_exists='replace', index=False)
+        df.to_sql(name="BNA_RENTALS", con=conn, if_exists="replace", index=False)
         logger.info(f"Updated BNA_RENTALS: {len(df)} total records")
 
 
@@ -98,16 +99,16 @@ def updateFredMetricsTable() -> None:
 
     with get_db_connection() as conn:
         # Read existing data
-        existing_df = read_table_safely('BNA_FRED_METRICS', conn)
+        existing_df = read_table_safely("BNA_FRED_METRICS", conn)
 
         # Merge and deduplicate based on date + series_id
         if not existing_df.empty:
             df = pd.concat([existing_df, df]).drop_duplicates(
-                subset=['date', 'series_id'], keep='last'
+                subset=["date", "series_id"], keep="last"
             )
             logger.info(f"Merged with {len(existing_df)} existing records")
 
-        df.to_sql(name='BNA_FRED_METRICS', con=conn, if_exists='replace', index=False)
+        df.to_sql(name="BNA_FRED_METRICS", con=conn, if_exists="replace", index=False)
         logger.info(f"Updated BNA_FRED_METRICS: {len(df)} total records")
 
 
