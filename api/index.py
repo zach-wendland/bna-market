@@ -1,20 +1,16 @@
-"""
-Vercel serverless function entry point for BNA Market
+"""Vercel entrypoint for the BNA Market Flask application."""
 
-This file is required by Vercel to serve the Flask application.
-"""
-
-import sys
 import os
+import sys
 
-# Add src to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src'))
+# Ensure the project src directory is on the path so the package can be imported
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
 
 from bna_market.web.app import create_app
 
-# Create Flask app
-app = create_app()
 
-# Vercel requires the app to be named 'app' or exposed as a handler
-def handler(request, context):
-    return app(request.environ, context)
+# Expose the Flask application directly. Vercel's Python runtime detects the
+# WSGI app when the module-level variable is named ``app``; no custom handler
+# function is needed and calling the app manually can lead to interface errors
+# in the serverless environment.
+app = create_app()
