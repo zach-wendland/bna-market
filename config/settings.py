@@ -8,6 +8,12 @@ This module contains all configuration settings including:
 - Database settings
 """
 
+import os
+from pathlib import Path
+
+# Base directory for resolving relative paths (project root)
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 # Geographic boundaries for Nashville, TN metropolitan area
 NASHVILLE_POLYGON = {"west": -87.2316, "north": 36.5227, "east": -86.3316, "south": 35.8027}
 
@@ -57,8 +63,10 @@ FRED_CONFIG = {
 }
 
 # Database configuration
+_default_db_path = os.getenv("DATABASE_PATH", "BNASFR02.DB")
 DATABASE_CONFIG = {
-    "path": "BNASFR02.DB",
+    # Resolve to an absolute path to avoid deployment issues with relative CWDs
+    "path": str(Path(_default_db_path) if Path(_default_db_path).is_absolute() else BASE_DIR / _default_db_path),
     "tables": {
         "for_sale": "BNA_FORSALE",
         "rentals": "BNA_RENTALS",

@@ -8,23 +8,14 @@ and comprehensive market indicator dashboards.
 Required packages:
 - pandas
 - plotly
-- scipy
-- statsmodels (required for OLS trendlines in scatter plots)
+- numpy (for lightweight correlation/trendline calculations)
 """
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from scipy import stats
 from typing import Dict, Optional, Tuple
-
-# Check for statsmodels availability (required for trendline='ols')
-try:
-    import statsmodels.api as sm
-
-    HAS_STATSMODELS = True
-except ImportError:
-    HAS_STATSMODELS = False
 
 
 def calculate_correlations(fred_df: pd.DataFrame) -> pd.DataFrame:
@@ -129,7 +120,7 @@ def create_scatter_with_trendline(
         y_metric: Name of metric for y-axis
 
     Returns:
-        Tuple of (HTML string, correlation coefficient, p-value)
+        Tuple of (HTML string, correlation coefficient, optional p-value)
         Returns empty plot with message if insufficient data
     """
     if df.empty:
@@ -186,42 +177,41 @@ def create_scatter_with_trendline(
         fig.update_layout(title=f"{y_metric} vs {x_metric}", template="plotly_white", height=400)
         return fig.to_html(full_html=False, include_plotlyjs=False), None, None
 
-    # Calculate Pearson correlation
-    correlation, p_value = stats.pearsonr(plot_df[x_metric], plot_df[y_metric])
+    # Calculate Pearson correlation without heavy dependencies
+    correlation = float(plot_df[x_metric].corr(plot_df[y_metric]))
 
-    # Create scatter plot with trendline (if statsmodels is available)
-    if HAS_STATSMODELS:
-        fig = px.scatter(
-            plot_df,
-            x=x_metric,
-            y=y_metric,
-            trendline="ols",
-            title=f"{y_metric} vs {x_metric}<br><sub>Correlation: {correlation:.3f} (p={p_value:.4f})</sub>",
-            labels={
-                x_metric: x_metric.replace("_", " ").title(),
-                y_metric: y_metric.replace("_", " ").title(),
-            },
-        )
-    else:
-        # Create scatter plot without trendline if statsmodels not available
-        fig = px.scatter(
-            plot_df,
-            x=x_metric,
-            y=y_metric,
-            title=f"{y_metric} vs {x_metric}<br><sub>Correlation: {correlation:.3f} (p={p_value:.4f})</sub>",
-            labels={
-                x_metric: x_metric.replace("_", " ").title(),
-                y_metric: y_metric.replace("_", " ").title(),
-            },
+    fig = px.scatter(
+        plot_df,
+        x=x_metric,
+        y=y_metric,
+        title=f"{y_metric} vs {x_metric}<br><sub>Correlation: {correlation:.3f}</sub>",
+        labels={
+            x_metric: x_metric.replace("_", " ").title(),
+            y_metric: y_metric.replace("_", " ").title(),
+        },
+    )
+
+    if len(plot_df) >= 2:
+        # Add lightweight linear trendline using numpy
+        x_vals = plot_df[x_metric].astype(float)
+        y_vals = plot_df[y_metric].astype(float)
+        slope, intercept = np.polyfit(x_vals, y_vals, 1)
+        line_x = np.array([x_vals.min(), x_vals.max()])
+        line_y = slope * line_x + intercept
+
+        fig.add_trace(
+            go.Scatter(
+                x=line_x,
+                y=line_y,
+                mode="lines",
+                name="Trendline",
+                line=dict(color="red", width=2, dash="dash"),
+            )
         )
 
     fig.update_traces(
         marker=dict(size=8, opacity=0.6, color="#1f77b4"), selector=dict(mode="markers")
     )
-
-    # Style the trendline (only if statsmodels is available and trendline was added)
-    if HAS_STATSMODELS:
-        fig.update_traces(line=dict(color="red", width=2, dash="dash"), selector=dict(mode="lines"))
 
     fig.update_layout(
         template="plotly_white",
@@ -231,7 +221,7 @@ def create_scatter_with_trendline(
         hovermode="closest",
     )
 
-    return fig.to_html(full_html=False, include_plotlyjs=False), correlation, p_value
+    return fig.to_html(full_html=False, include_plotlyjs=False), correlation, None
 
 
 def create_market_indicators_dashboard(
