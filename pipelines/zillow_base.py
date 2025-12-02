@@ -3,6 +3,7 @@ Shared Zillow API functionality for BNA Market pipelines
 
 Eliminates code duplication between forSale and rental pipelines.
 """
+
 import requests
 import pandas as pd
 import time
@@ -12,7 +13,7 @@ from utils.retry import retry_with_backoff
 from utils.validators import validate_zillow_dataframe
 from config.settings import NASHVILLE_POLYGON
 
-logger = setup_logger('zillow_pipeline')
+logger = setup_logger("zillow_pipeline")
 
 
 @retry_with_backoff(max_retries=3, base_delay=1.0)
@@ -37,11 +38,7 @@ def fetch_single_page(url: str, headers: Dict, params: Dict) -> Dict:
 
 
 def fetch_zillow_listings(
-    status_type: str,
-    config: Dict,
-    api_key: str,
-    max_pages: int = 20,
-    page_delay: float = 0.5
+    status_type: str, config: Dict, api_key: str, max_pages: int = 20, page_delay: float = 0.5
 ) -> pd.DataFrame:
     """
     Generic Zillow listing fetcher for both for-sale and rental properties
@@ -59,10 +56,7 @@ def fetch_zillow_listings(
     url = "https://zillow-com1.p.rapidapi.com/propertyByPolygon"
     polygon_coords = f"{NASHVILLE_POLYGON['west']} {NASHVILLE_POLYGON['north']}, {NASHVILLE_POLYGON['east']} {NASHVILLE_POLYGON['north']}, {NASHVILLE_POLYGON['east']} {NASHVILLE_POLYGON['south']}, {NASHVILLE_POLYGON['west']} {NASHVILLE_POLYGON['south']}, {NASHVILLE_POLYGON['west']} {NASHVILLE_POLYGON['north']}"
 
-    headers = {
-        "x-rapidapi-key": api_key,
-        "x-rapidapi-host": "zillow-com1.p.rapidapi.com"
-    }
+    headers = {"x-rapidapi-key": api_key, "x-rapidapi-host": "zillow-com1.p.rapidapi.com"}
 
     all_properties = []
 
@@ -71,13 +65,13 @@ def fetch_zillow_listings(
             "polygon": polygon_coords,
             "status_type": status_type,
             "page": str(page),
-            **{k: str(v) for k, v in config.items() if k not in ['max_pages', 'page_delay']}
+            **{k: str(v) for k, v in config.items() if k not in ["max_pages", "page_delay"]},
         }
 
         try:
             logger.info(f"Fetching {status_type} page {page}/{max_pages}")
             data = fetch_single_page(url, headers, querystring)
-            properties = data.get('props', [])
+            properties = data.get("props", [])
 
             if not properties:
                 logger.info(f"No more properties found at page {page}, stopping pagination")

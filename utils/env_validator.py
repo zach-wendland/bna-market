@@ -3,12 +3,13 @@ Environment validation for BNA Market application
 
 Validates required environment variables are set before running pipelines.
 """
+
 import os
 from typing import Dict
 from dotenv import load_dotenv
 from utils.logger import setup_logger
 
-logger = setup_logger('env_validator')
+logger = setup_logger("env_validator")
 
 
 def validate_environment() -> bool:
@@ -21,8 +22,8 @@ def validate_environment() -> bool:
     load_dotenv()
 
     required_vars: Dict[str, str] = {
-        'RAPID_API_KEY': 'RapidAPI key for Zillow data',
-        'FRED_API_KEY': 'FRED API key for economic indicators'
+        "RAPID_API_KEY": "RapidAPI key for Zillow data",
+        "FRED_API_KEY": "FRED API key for economic indicators",
     }
 
     missing_vars = []

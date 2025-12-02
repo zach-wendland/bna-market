@@ -3,6 +3,7 @@ Rental property pipeline for BNA Market
 
 Fetches rental property listings from Zillow API with unit parsing.
 """
+
 import pandas as pd
 import json
 import ast
@@ -14,7 +15,7 @@ from config.settings import ZILLOW_CONFIG
 from utils.logger import setup_logger
 
 load_dotenv()
-logger = setup_logger('rental_pipeline')
+logger = setup_logger("rental_pipeline")
 
 
 def parse_units(x):
@@ -62,11 +63,11 @@ def rentalPipe01() -> pd.DataFrame:
         raise ValueError("RAPID_API_KEY not found in environment")
 
     df = fetch_zillow_listings(
-        status_type='ForRent',
-        config=ZILLOW_CONFIG['rentals'],
+        status_type="ForRent",
+        config=ZILLOW_CONFIG["rentals"],
         api_key=api_key,
-        max_pages=ZILLOW_CONFIG['rentals']['max_pages'],
-        page_delay=ZILLOW_CONFIG['rentals']['page_delay']
+        max_pages=ZILLOW_CONFIG["rentals"]["max_pages"],
+        page_delay=ZILLOW_CONFIG["rentals"]["page_delay"],
     )
 
     # Only parse units if the column exists and DataFrame is not empty

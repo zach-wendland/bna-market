@@ -3,13 +3,14 @@ Retry logic with exponential backoff for BNA Market application
 
 Provides decorators for retrying failed operations with configurable backoff strategies.
 """
+
 import time
 import requests
 from functools import wraps
 from typing import Callable, Tuple, Type
 from utils.logger import setup_logger
 
-logger = setup_logger('retry')
+logger = setup_logger("retry")
 
 
 def retry_with_backoff(
@@ -17,7 +18,7 @@ def retry_with_backoff(
     base_delay: float = 1.0,
     max_delay: float = 60.0,
     exponential_base: float = 2.0,
-    retry_on: Tuple[Type[Exception], ...] = (requests.exceptions.RequestException,)
+    retry_on: Tuple[Type[Exception], ...] = (requests.exceptions.RequestException,),
 ):
     """
     Decorator for retrying functions with exponential backoff
@@ -38,6 +39,7 @@ def retry_with_backoff(
             response = requests.get(url)
             return response.json()
     """
+
     def decorator(func: Callable):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -49,7 +51,7 @@ def retry_with_backoff(
                         logger.error(f"{func.__name__} failed after {max_retries} retries: {e}")
                         raise
 
-                    delay = min(base_delay * (exponential_base ** attempt), max_delay)
+                    delay = min(base_delay * (exponential_base**attempt), max_delay)
                     logger.warning(
                         f"{func.__name__} failed (attempt {attempt + 1}/{max_retries + 1}), "
                         f"retrying in {delay:.1f}s: {e}"
@@ -57,4 +59,5 @@ def retry_with_backoff(
                     time.sleep(delay)
 
         return wrapper
+
     return decorator
