@@ -9,17 +9,37 @@ import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from config.settings import DATABASE_CONFIG
 from utils.logger import setup_logger
+from web.auth import auth_bp, init_user_table
+from web.billing import billing_bp
 
 logger = setup_logger("web_app")
 
 app = Flask(__name__, static_folder="static")
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "BNASFR02.DB")
+app.config.setdefault("SECRET_KEY", os.getenv("SECRET_KEY", "dev-secret"))
+
+
+def _str_to_bool(value: str) -> bool:
+    return str(value).lower() in {"1", "true", "yes", "on"}
+
+
+app.config.setdefault(
+    "SUBSCRIPTION_CHECKS_ENABLED",
+    _str_to_bool(os.getenv("SUBSCRIPTION_CHECKS_ENABLED", "false")),
+)
+app.config.setdefault(
+    "ENABLE_AUTH_CHECKS", _str_to_bool(os.getenv("ENABLE_AUTH_CHECKS", "false"))
+)
+init_user_table()
+DB_PATH = DATABASE_CONFIG["path"]
 
 # Register API blueprint
 from web.api import api_bp
 
 app.register_blueprint(api_bp)
+app.register_blueprint(auth_bp)
+app.register_blueprint(billing_bp)
 
 
 def read_df(table):

@@ -23,12 +23,6 @@ from bna_market.utils.logger import setup_logger
 logger = setup_logger("api")
 
 
-@api_bp.route("/health", methods=["GET"])
-def health_check():
-    """Health check endpoint for monitoring"""
-    return jsonify({"status": "healthy"}), 200
-
-
 @api_bp.route("/properties/search", methods=["GET"])
 def search_properties():
     """
