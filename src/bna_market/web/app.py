@@ -38,12 +38,17 @@ def create_app(config=None):
     if config:
         app.config.update(config)
 
-    # Set database path (fallback to root for backwards compatibility)
+    # Set database path (environment variable takes precedence)
     if "DATABASE_PATH" not in app.config:
-        # Try data/ directory first, then fallback to root
-        data_db = os.path.join(os.path.dirname(package_root), "data", "BNASFR02.DB")
-        root_db = os.path.join(os.path.dirname(package_root), "BNASFR02.DB")
-        app.config["DATABASE_PATH"] = data_db if os.path.exists(data_db) else root_db
+        # Check for environment variable first (for production deployments)
+        env_db_path = os.getenv("DATABASE_PATH")
+        if env_db_path:
+            app.config["DATABASE_PATH"] = env_db_path
+        else:
+            # Try data/ directory first, then fallback to root
+            data_db = os.path.join(os.path.dirname(package_root), "data", "BNASFR02.DB")
+            root_db = os.path.join(os.path.dirname(package_root), "BNASFR02.DB")
+            app.config["DATABASE_PATH"] = data_db if os.path.exists(data_db) else root_db
 
     # Register blueprints
     from bna_market.web.api import api_bp

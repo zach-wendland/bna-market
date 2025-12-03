@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: bna-market
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 "src.bna_market.web.app:create_app()"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: RAPID_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: FRED_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: SECRET_KEY
+        generateValue: true  # Auto-generate secure secret
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/data/BNASFR02.DB
+    autoDeploy: true
+
+    # Health check endpoint
+    healthCheckPath: /api/health
+
+    # Resource allocation (adjust based on your plan)
+    plan: free  # Options: free, starter, standard, pro
+
+    # Persistent disk for SQLite database (optional but recommended)
+    disk:
+      name: bna-database
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
