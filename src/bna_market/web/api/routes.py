@@ -7,14 +7,9 @@ Endpoints:
 - /api/metrics/fred - Get FRED economic metrics with optional filters
 """
 
-import sys
-import os
 from flask import request, jsonify, make_response
 from io import StringIO
 import csv
-
-# Add parent directories to path for imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from bna_market.web.api import api_bp
 from bna_market.utils.database import get_db_connection

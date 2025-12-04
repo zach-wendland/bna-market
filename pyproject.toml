@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bna-market"
-version = "0.1.0"
+version = "2.0.0"
 description = "Nashville real estate market analytics application"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -16,6 +16,17 @@ dependencies = [
     "flask==3.0.0",
     "fredapi==0.5.1",
     "python-dotenv==1.0.0",
+]
+
+[project.optional-dependencies]
+production = [
+    "gunicorn>=21.2.0",
+]
+dev = [
+    "pytest>=7.4.3",
+    "black>=23.12.1",
+    "flake8>=6.1.0",
+    "mypy>=1.7.1",
 ]
 
 [project.scripts]

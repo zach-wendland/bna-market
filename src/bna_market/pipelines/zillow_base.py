@@ -11,7 +11,7 @@ from typing import Dict
 from bna_market.utils.logger import setup_logger
 from bna_market.utils.retry import retry_with_backoff
 from bna_market.utils.validators import validate_zillow_dataframe
-from bna_market.core.settings import NASHVILLE_POLYGON
+from bna_market.core.config import NASHVILLE_POLYGON
 
 logger = setup_logger("zillow_pipeline")
 
