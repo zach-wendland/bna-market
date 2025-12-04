@@ -168,8 +168,8 @@ def mock_fred_api():
 @pytest.fixture
 def flask_test_client():
     """Flask test client for API testing"""
-    from web.web_app import app
+    from bna_market.web.app import create_app
 
-    app.config["TESTING"] = True
+    app = create_app({"TESTING": True})
     with app.test_client() as client:
         yield client
