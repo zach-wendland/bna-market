@@ -9,7 +9,7 @@ import pandas as pd
 from contextlib import contextmanager
 from typing import Optional
 from bna_market.utils.logger import setup_logger
-from bna_market.core.settings import DATABASE_CONFIG
+from bna_market.core.config import DATABASE_CONFIG
 
 logger = setup_logger("database")
 

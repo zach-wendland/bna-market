@@ -11,6 +11,7 @@ import plotly.io as pio
 from flask import Flask, render_template
 
 from bna_market.utils.logger import setup_logger
+from bna_market.core.config import settings, DATABASE_CONFIG
 
 logger = setup_logger("web_app")
 
@@ -26,7 +27,6 @@ def create_app(config=None):
         Configured Flask application
     """
     # Determine paths relative to package root
-    package_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     template_folder = os.path.join(os.path.dirname(__file__), "templates")
     static_folder = os.path.join(os.path.dirname(__file__), "static")
 
@@ -34,25 +34,15 @@ def create_app(config=None):
         __name__, template_folder=template_folder, static_folder=static_folder
     )
 
-    # Load configuration
+    # Default configuration from settings
+    app.config["DATABASE_PATH"] = DATABASE_CONFIG["path"]
+
+    # Override with custom config if provided
     if config:
         app.config.update(config)
 
-    # Set database path (environment variable takes precedence)
-    if "DATABASE_PATH" not in app.config:
-        # Check for environment variable first (for production deployments)
-        env_db_path = os.getenv("DATABASE_PATH")
-        if env_db_path:
-            app.config["DATABASE_PATH"] = env_db_path
-        else:
-            # Try data/ directory first, then fallback to root
-            data_db = os.path.join(os.path.dirname(package_root), "data", "BNASFR02.DB")
-            root_db = os.path.join(os.path.dirname(package_root), "BNASFR02.DB")
-            app.config["DATABASE_PATH"] = data_db if os.path.exists(data_db) else root_db
-
     # Register blueprints
     from bna_market.web.api import api_bp
-
     app.register_blueprint(api_bp)
 
     # Helper function for reading DataFrames
@@ -146,7 +136,7 @@ def create_app(config=None):
         else:
             fig_rent_hist = go.Figure()
             fig_rent_hist.add_annotation(
-                text="No rental data available. Please run 'python app.py' to populate the database.",
+                text="No rental data available. Please run 'python -m bna_market etl' to populate the database.",
                 xref="paper",
                 yref="paper",
                 x=0.5,
@@ -174,7 +164,7 @@ def create_app(config=None):
         else:
             fig_sale_hist = go.Figure()
             fig_sale_hist.add_annotation(
-                text="No for-sale data available. Please run 'python app.py' to populate the database.",
+                text="No for-sale data available. Please run 'python -m bna_market etl' to populate the database.",
                 xref="paper",
                 yref="paper",
                 x=0.5,
