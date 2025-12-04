@@ -79,3 +79,5 @@ htmlcov/
 # Test files
 test_*.csv
 *.test
+test_*.py
+myenv/
