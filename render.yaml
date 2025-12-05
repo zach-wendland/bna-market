@@ -3,7 +3,7 @@ services:
     name: bna-market
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 "src.bna_market.web.app:create_app()"
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 "bna_market.web.app:create_app()"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -16,7 +16,7 @@ services:
       - key: FLASK_ENV
         value: production
       - key: DATABASE_PATH
-        value: /opt/render/project/src/data/BNASFR02.DB
+        value: /opt/render/project/data/BNASFR02.DB
     autoDeploy: true
 
     # Health check endpoint
@@ -28,5 +28,5 @@ services:
     # Persistent disk for SQLite database (optional but recommended)
     disk:
       name: bna-database
-      mountPath: /opt/render/project/src/data
+      mountPath: /opt/render/project/data
       sizeGB: 1

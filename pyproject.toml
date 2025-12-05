@@ -33,7 +33,7 @@ dev = [
 bna-market = "bna_market.__main__:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
 [tool.black]
 line-length = 100

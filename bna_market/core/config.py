@@ -23,8 +23,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Base directory for resolving relative paths (project root - 3 levels up from this file)
-# src/bna_market/core/config.py -> project root
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+# bna_market/core/config.py -> project root
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 # Settings dictionary (environment variables)

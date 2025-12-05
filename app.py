@@ -16,11 +16,7 @@ Or use the CLI command after installation:
 This wrapper will be removed in a future version.
 """
 
-import sys
 import warnings
-
-# Add src to path for development
-sys.path.insert(0, "src")
 
 warnings.warn(
     "app.py is deprecated. Use 'python -m bna_market etl run' instead.",
