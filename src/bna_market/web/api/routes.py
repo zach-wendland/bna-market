@@ -17,6 +17,12 @@ from bna_market.utils.logger import setup_logger
 
 logger = setup_logger("api")
 
+# Explicit table name mapping to prevent SQL injection
+PROPERTY_TYPE_TABLE_MAP = {
+    "forsale": "BNA_FORSALE",
+    "rental": "BNA_RENTALS"
+}
+
 
 @api_bp.route("/properties/search", methods=["GET"])
 def search_properties():
@@ -44,11 +50,11 @@ def search_properties():
     try:
         # Validate required parameter
         property_type = request.args.get("property_type", "").lower()
-        if property_type not in ["forsale", "rental"]:
+        if property_type not in PROPERTY_TYPE_TABLE_MAP:
             return jsonify({"error": 'property_type must be either "forsale" or "rental"'}), 400
 
-        # Determine table name
-        table_name = "BNA_FORSALE" if property_type == "forsale" else "BNA_RENTALS"
+        # Get table name from secure mapping
+        table_name = PROPERTY_TYPE_TABLE_MAP[property_type]
 
         # Get pagination parameters
         page = max(1, int(request.args.get("page", 1)))
@@ -174,11 +180,11 @@ def export_properties():
     try:
         # Validate required parameter
         property_type = request.args.get("property_type", "").lower()
-        if property_type not in ["forsale", "rental"]:
+        if property_type not in PROPERTY_TYPE_TABLE_MAP:
             return jsonify({"error": 'property_type must be either "forsale" or "rental"'}), 400
 
-        # Determine table name
-        table_name = "BNA_FORSALE" if property_type == "forsale" else "BNA_RENTALS"
+        # Get table name from secure mapping
+        table_name = PROPERTY_TYPE_TABLE_MAP[property_type]
 
         # Build WHERE clause with same filters as search
         conditions = []

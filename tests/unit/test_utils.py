@@ -2,11 +2,11 @@
 
 import pytest
 import sqlite3
-from utils.database import get_db_connection, read_table_safely
-from utils.logger import setup_logger
-from utils.validators import validate_zillow_property, validate_zillow_dataframe
-from utils.retry import retry_with_backoff
-from utils.env_validator import validate_environment
+from bna_market.utils.database import get_db_connection, read_table_safely
+from bna_market.utils.logger import setup_logger
+from bna_market.utils.validators import validate_zillow_property, validate_zillow_dataframe
+from bna_market.utils.retry import retry_with_backoff
+from bna_market.utils.env_validator import validate_environment
 
 
 class TestDatabase:
@@ -14,7 +14,7 @@ class TestDatabase:
 
     def test_get_db_connection_returns_connection(self, temp_db, monkeypatch):
         """Should return SQLite connection"""
-        monkeypatch.setattr("utils.database.DATABASE_CONFIG", {"path": temp_db})
+        monkeypatch.setattr("bna_market.utils.database.DATABASE_CONFIG", {"path": temp_db})
 
         with get_db_connection() as conn:
             assert isinstance(conn, sqlite3.Connection)
