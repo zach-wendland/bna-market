@@ -8,131 +8,171 @@ BNA Market is a Nashville real estate market analytics application that collects
 
 **Geographic Focus**: Nashville, TN metropolitan area (polygon: -87.2316 36.5227 to -86.3316 35.8027)
 
-## Architecture
-
-### Data Flow
-1. **Data Collection** (`pipelines/`) → Fetch data from external APIs
-2. **Data Storage** (`app.py`) → Transform and load into SQLite database
-3. **Data Visualization** (`web/web_app.py`) → Flask dashboard with Plotly charts
-
-### Database Schema (BNASFR02.DB)
-- `BNA_FORSALE` - For-sale property listings from Zillow (unique on `zpid`)
-- `BNA_RENTALS` - Rental property listings from Zillow (unique on `zpid`)
-- `BNA_FRED_METRICS` - Economic indicators from FRED (unique on `date` + `series_id`)
-
-### Pipeline Architecture
-
-**pipelines/forSale.py** - Zillow for-sale properties
-- Fetches up to 20 pages of listings
-- Filters: $100k-$700k, 1-5 beds, 1-4 baths, 700-5000 sqft, built after 1990
-- Returns: Raw DataFrame with nested JSON fields
-
-**pipelines/rentalPipe.py** - Zillow rental properties
-- Fetches up to 20 pages of listings
-- Filters: $1400-$3200/month, 1-4 beds, 1-4 baths, 550-6000 sqft, built after 1979
-- Parses and explodes `units` array for multi-unit properties
-- Returns: Flattened DataFrame with `_unit` suffix columns
-
-**pipelines/otherMetricsPipe.py** - FRED economic indicators
-- Fetches 15 years of historical data for 8 Nashville MSA metrics:
-  - `active_listings`, `median_price`, `median_dom` (days on market)
-  - `employment_non_farm`, `msa_population`, `median_pp_sqft`
-  - `median_listing_price_change`, `msa_per_capita_income`
-- Returns: Long-format DataFrame with columns: `date`, `metric_name`, `series_id`, `value`
-
-### ETL Update Strategy (app.py)
-
-All three update functions (`updateSalesTable`, `updateRentalsTable`, `updateFredMetricsTable`):
-1. Call pipeline function to fetch new data
-2. Skip update if DataFrame is empty
-3. Read existing table data
-4. Merge new data with existing (deduplication based on unique keys)
-5. Replace entire table with merged dataset
-
-**Important**: Dict/list columns are JSON-serialized before SQLite storage.
-
 ## Development Commands
 
-### Run ETL Pipeline
 ```bash
-python app.py
+# Run ETL pipeline (fetch data and update database)
+python -m bna_market etl run
+
+# Start web server
+python -m bna_market web serve
+
+# Run tests with coverage
+pytest
+
+# Run single test file
+pytest tests/unit/test_api_routes.py
+
+# Run specific test
+pytest tests/unit/test_api_routes.py::test_search_properties_success -v
+
+# Format code
+black bna_market tests
+
+# Type checking
+mypy bna_market
+
+# Linting
+flake8 bna_market
 ```
-Updates all three database tables (rentals, sales, FRED metrics).
 
-### Run Web Dashboard
-```bash
-cd web
-python web_app.py
+## Architecture
+
+### Package Structure
 ```
-Launches Flask app at http://127.0.0.1:5000 (default port).
-
-**Note**: Dashboard will show "no data available" messages until `python app.py` has been run at least once to populate the database.
-
-### Test Individual Pipelines
-```bash
-# Test for-sale pipeline (has print statement at end)
-python pipelines/forSale.py
-
-# Test rental pipeline
-python -c "from pipelines.rentalPipe import rentalPipe01; print(rentalPipe01())"
-
-# Test FRED metrics pipeline
-python -c "from pipelines.otherMetricsPipe import fredMetricsPipe01; print(fredMetricsPipe01())"
+bna_market/
+├── core/config.py       # Centralized settings (API keys, search filters, DB path)
+├── services/etl_service.py  # ETL orchestration with deduplication
+├── pipelines/           # Data collection
+│   ├── zillow_base.py   # Shared Zillow API logic with retry
+│   ├── for_sale.py      # For-sale properties
+│   ├── rental.py        # Rental properties
+│   └── fred_metrics.py  # FRED economic indicators
+├── web/
+│   ├── app.py           # Flask application factory (create_app)
+│   └── api/routes.py    # REST API endpoints
+└── utils/               # Shared utilities (logger, database, retry, validators)
 ```
+
+### Data Flow
+1. **Pipelines** fetch from Zillow/FRED APIs with retry logic
+2. **ETLService** merges new data with existing, deduplicates, and updates SQLite
+3. **Flask app** reads from SQLite, renders Plotly charts + API endpoints
+
+### Database Schema (BNASFR02.DB)
+- `BNA_FORSALE` - For-sale properties (unique on `zpid`)
+- `BNA_RENTALS` - Rental properties (unique on `zpid`)
+- `BNA_FRED_METRICS` - Economic indicators (unique on `date` + `series_id`)
+
+### Key Entry Points
+- CLI: `bna_market/__main__.py` - argparse-based CLI
+- ETL: `ETLService.run_full_refresh()` in `services/etl_service.py`
+- Web: `create_app()` factory in `web/app.py`
 
 ## Environment Setup
 
-### Required Environment Variables (.env)
+Required in `.env`:
 ```
-RAPID_API_KEY=<your-rapidapi-key>  # For Zillow API access
-FRED_API_KEY=<your-fred-api-key>   # For FRED economic data
+RAPID_API_KEY=<your-rapidapi-key>
+FRED_API_KEY=<your-fred-api-key>
 ```
 
-### Expected Dependencies
-Based on imports across the codebase:
-- requests
-- pandas
-- plotly
-- flask
-- fredapi
-- python-dotenv
-- sqlite3 (standard library)
+Optional:
+```
+DATABASE_PATH=BNASFR02.DB  # Defaults to project root
+```
 
-**Note**: No `requirements.txt` exists yet. Create one if adding dependencies.
+## Installation
 
-## Code Organization Notes
+```bash
+# Development install (editable)
+pip install -e .
 
-### Completed
-- `pipelines/` - All three data collection pipelines are functional
-- `app.py` - ETL orchestration with deduplication logic
-- `web/web_app.py` - Dashboard with 4 FRED time-series charts + 2 property histograms
+# Or use requirements.txt
+pip install -r requirements.txt
+```
 
-### Incomplete
-- `utils/etlRentals.py` - Marked "NOT FINISHED YET", contains experimental rental data cleaning logic (not used in main pipeline)
-- `etl/` - Empty directory
+After installation, the `bna-market` CLI command becomes available:
+```bash
+bna-market etl run
+bna-market web serve
+```
 
-### Web Application Structure
-- `web/templates/dashboard.html` - Main dashboard template
-- `web/templates/_rentals_table.html` - Rental property table partial
-- `web/templates/_forsale_table.html` - For-sale property table partial
-- `web/static/stylesheet.css` - Dashboard styling
+## Deployment
 
-## API Rate Limits & Pagination
+Configured for multiple platforms:
+- **Vercel**: Serverless via `api/index.py` entry point
+- **Railway/Heroku/Render**: gunicorn with `bna_market.web.app:create_app()`
+
+## Testing
+
+Tests use pytest with fixtures in `tests/conftest.py`:
+- `temp_db` - Creates temporary SQLite database with schema
+- `sample_forsale_df`, `sample_rental_df`, `sample_fred_df` - Sample DataFrames
+- `flask_test_client` - Flask test client for API testing
+- `mock_requests_get`, `mock_fred_api` - API mocking
+
+Coverage target: 80% (configured in pyproject.toml)
+
+## API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/health` | Health check |
+| `GET /api/properties/search` | Search properties (params: property_type, min_price, max_price, min_beds, etc.) |
+| `GET /api/properties/export` | Export properties as CSV |
+| `GET /api/metrics/fred` | Get FRED economic metrics |
+
+## Common Patterns
+
+### Database Access
+```python
+from bna_market.utils.database import get_db_connection, read_table_safely
+
+with get_db_connection(db_path) as conn:
+    df = read_table_safely("BNA_FORSALE", conn)
+```
+
+### Logging
+```python
+from bna_market.utils.logger import setup_logger
+logger = setup_logger("module_name")
+```
+
+### Configuration
+```python
+from bna_market.core.config import settings, ZILLOW_CONFIG, DATABASE_CONFIG
+api_key = settings["rapid_api_key"]
+```
+
+## API Rate Limits
 
 **Zillow API** (via RapidAPI):
-- Both pipelines fetch maximum 20 pages
-- 0.5 second delay between page requests
-- Error handling: breaks loop on RequestException, JSONDecodeError, or any unexpected error
+- 20 pages max per pipeline run
+- 0.5 second delay between requests
+- Retry with exponential backoff (3 retries)
 
 **FRED API**:
-- No explicit rate limiting implemented
-- Fetches 15 years of data in single request per series
-- 8 series total, fetched sequentially
+- 8 series fetched sequentially
+- 15 years of historical data per series
 
-## Common Gotchas
+## Legacy Files
 
-1. **Duplicate `load_dotenv()`**: `rentalPipe.py` calls `load_dotenv()` twice (lines 10-11)
-2. **Print statement in production**: `forSale.py` has `print(forSalePipe01())` at line 75 - runs every import
-3. **Relative DB path**: `web/web_app.py` uses `"../BNASFR02.DB"` - only works when running from `web/` directory
-4. **No data validation**: Pipelines return empty DataFrames on API failures without raising exceptions
-5. **Replace vs Append**: All update functions use `if_exists='replace'` - entire table is rewritten on every update (mitigated by merge logic)
+The root `app.py` is a deprecated wrapper maintained for backwards compatibility. Use the CLI commands instead:
+```bash
+# Old (deprecated)
+python app.py
+
+# New (preferred)
+python -m bna_market etl run
+```
+
+## UI/UX Improvement Plan
+
+Comprehensive plan for dashboard improvements located at:
+`C:\Users\lyyud\.claude\plans\cozy-dazzling-raccoon.md`
+
+**Phase 1 (Critical)**: Map view, unified filters, table sorting, price/sqft, real-time feedback
+**Phase 2 (Important)**: Filter chips, performance fixes (iterrows→to_dict), data freshness, advanced filters
+
+All recommendations validated with 2024-2025 research from Realtor.com, Nielsen Norman Group, WCAG 2.1, and performance benchmarks.

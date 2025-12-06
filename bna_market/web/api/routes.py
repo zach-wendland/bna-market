@@ -24,6 +24,144 @@ PROPERTY_TYPE_TABLE_MAP = {
 }
 
 
+def fix_zillow_url(detail_url):
+    """Fix Zillow URLs stored as relative paths"""
+    if not detail_url:
+        return None
+    if detail_url.startswith("http"):
+        return detail_url
+    return f"https://www.zillow.com{detail_url}"
+
+
+@api_bp.route("/dashboard", methods=["GET"])
+def get_dashboard():
+    """
+    Get all dashboard data in one call for Vue frontend
+
+    Returns:
+        JSON with propertyKPIs, fredKPIs, rentals, forsale, fredMetrics, lastUpdated
+    """
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get KPI aggregates from FULL database
+            cursor.execute("""
+                SELECT COUNT(*) as count, AVG(price) as avg_price
+                FROM BNA_RENTALS
+                WHERE price IS NOT NULL AND price > 0
+            """)
+            rental_stats = cursor.fetchone()
+            rental_count = rental_stats[0] if rental_stats else 0
+            rental_avg = round(rental_stats[1]) if rental_stats and rental_stats[1] else None
+
+            cursor.execute("""
+                SELECT COUNT(*) as count, AVG(price) as avg_price
+                FROM BNA_FORSALE
+                WHERE price IS NOT NULL AND price > 0
+            """)
+            forsale_stats = cursor.fetchone()
+            forsale_count = forsale_stats[0] if forsale_stats else 0
+            forsale_avg = round(forsale_stats[1]) if forsale_stats and forsale_stats[1] else None
+
+            # Get rental properties (limited for display)
+            cursor.execute("""
+                SELECT zpid, address, price, bedrooms, bathrooms, livingArea,
+                       propertyType, latitude, longitude, imgSrc, detailUrl,
+                       daysOnZillow, listingStatus
+                FROM BNA_RENTALS
+                ORDER BY price DESC
+                LIMIT 100
+            """)
+            columns = [desc[0] for desc in cursor.description]
+            rentals = []
+            for row in cursor.fetchall():
+                prop = dict(zip(columns, row))
+                prop['detailUrl'] = fix_zillow_url(prop.get('detailUrl'))
+                if prop.get('price') and prop.get('livingArea') and prop['livingArea'] > 0:
+                    prop['pricePerSqft'] = round(prop['price'] / prop['livingArea'], 2)
+                else:
+                    prop['pricePerSqft'] = None
+                rentals.append(prop)
+
+            # Get for-sale properties (limited for display)
+            cursor.execute("""
+                SELECT zpid, address, price, bedrooms, bathrooms, livingArea,
+                       propertyType, latitude, longitude, imgSrc, detailUrl,
+                       daysOnZillow, listingStatus
+                FROM BNA_FORSALE
+                ORDER BY price DESC
+                LIMIT 100
+            """)
+            columns = [desc[0] for desc in cursor.description]
+            forsale = []
+            for row in cursor.fetchall():
+                prop = dict(zip(columns, row))
+                prop['detailUrl'] = fix_zillow_url(prop.get('detailUrl'))
+                if prop.get('price') and prop.get('livingArea') and prop['livingArea'] > 0:
+                    prop['pricePerSqft'] = round(prop['price'] / prop['livingArea'], 2)
+                else:
+                    prop['pricePerSqft'] = None
+                forsale.append(prop)
+
+            # Get FRED metrics
+            cursor.execute("""
+                SELECT date, metric_name as metricName, series_id as seriesId, value
+                FROM BNA_FRED_METRICS
+                ORDER BY date DESC
+            """)
+            columns = [desc[0] for desc in cursor.description]
+            fred_metrics = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            # Calculate FRED KPIs (latest values)
+            fred_kpis = {}
+            metric_map = {
+                'median_price': 'medianPrice',
+                'active_listings': 'activeListings',
+                'median_dom': 'medianDaysOnMarket',
+                'msa_per_capita_income': 'perCapitaIncome'
+            }
+
+            latest_by_metric = {}
+            for metric in fred_metrics:
+                name = metric.get('metricName')
+                if name not in latest_by_metric:
+                    latest_by_metric[name] = metric
+
+            for db_name, kpi_name in metric_map.items():
+                if db_name in latest_by_metric:
+                    fred_kpis[kpi_name] = latest_by_metric[db_name].get('value')
+
+        import os
+        from datetime import datetime
+
+        # Get database last modified time
+        db_path = os.environ.get("DATABASE_PATH", "BNASFR02.DB")
+        try:
+            mtime = os.path.getmtime(db_path)
+            last_updated = datetime.fromtimestamp(mtime).isoformat() + "Z"
+        except:
+            last_updated = None
+
+        return jsonify({
+            "propertyKPIs": {
+                "totalRentalListings": rental_count,
+                "avgRentalPrice": rental_avg,
+                "totalForSaleListings": forsale_count,
+                "avgSalePrice": forsale_avg
+            },
+            "fredKPIs": fred_kpis,
+            "rentals": rentals,
+            "forsale": forsale,
+            "fredMetrics": fred_metrics,
+            "lastUpdated": last_updated
+        })
+
+    except Exception as e:
+        logger.error(f"Dashboard error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
 @api_bp.route("/properties/search", methods=["GET"])
 def search_properties():
     """
@@ -134,7 +272,15 @@ def search_properties():
             columns = [desc[0] for desc in cursor.description]
             properties = []
             for row in cursor.fetchall():
-                properties.append(dict(zip(columns, row)))
+                prop = dict(zip(columns, row))
+                # Fix Zillow URL
+                prop['detailUrl'] = fix_zillow_url(prop.get('detailUrl'))
+                # Calculate price per square foot
+                if prop.get('price') and prop.get('livingArea') and prop['livingArea'] > 0:
+                    prop['pricePerSqft'] = round(prop['price'] / prop['livingArea'], 2)
+                else:
+                    prop['pricePerSqft'] = None
+                properties.append(prop)
 
         # Calculate pagination metadata
         total_pages = (total_count + per_page - 1) // per_page
@@ -148,11 +294,11 @@ def search_properties():
                 "properties": properties,
                 "pagination": {
                     "page": page,
-                    "per_page": per_page,
-                    "total_count": total_count,
-                    "total_pages": total_pages,
-                    "has_next": page < total_pages,
-                    "has_prev": page > 1,
+                    "perPage": per_page,
+                    "totalCount": total_count,
+                    "totalPages": total_pages,
+                    "hasNext": page < total_pages,
+                    "hasPrev": page > 1,
                 },
             }
         )
@@ -358,6 +504,7 @@ def health_check():
             "status": "healthy",
             "api_version": "1.0",
             "endpoints": [
+                "/api/dashboard",
                 "/api/properties/search",
                 "/api/properties/export",
                 "/api/metrics/fred",

@@ -1,0 +1,38 @@
+{
+  "name": "bna-market-monorepo",
+  "version": "2.0.0",
+  "description": "Nashville Real Estate Market Analytics - Full Stack Application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "clean": "rimraf backend/dist frontend/dist node_modules backend/node_modules frontend/node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "rimraf": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/bna-market.git"
+  },
+  "keywords": [
+    "real-estate",
+    "nashville",
+    "analytics",
+    "vue",
+    "express",
+    "typescript"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

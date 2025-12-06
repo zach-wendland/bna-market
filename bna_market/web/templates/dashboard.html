@@ -6,25 +6,41 @@
     <title>BNA Real Estate Market Dashboard</title>
     <link rel="stylesheet" href="/static/stylesheet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Leaflet CSS for Map View -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   </head>
 
   <body>
-    <!-- HEADER -->
+    <!-- SKIP LINK FOR ACCESSIBILITY -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- HEADER WITH DATA FRESHNESS -->
     <header class="header">
       <div class="container">
         <h1 class="header-title">Nashville Real Estate Market Dashboard</h1>
         <p class="header-subtitle">Comprehensive market analysis for the BNA metro area</p>
+        {% if relative_time %}
+        <div class="data-freshness">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>Data updated {{ relative_time }}</span>
+        </div>
+        {% endif %}
       </div>
     </header>
 
-    <div class="container">
+    <main id="main-content" class="container">
       <!-- PROPERTY LISTINGS SECTION -->
-      <section class="section">
-        <h2 class="section-title">Property Listings Overview</h2>
+      <section class="section" aria-labelledby="property-overview-title">
+        <h2 id="property-overview-title" class="section-title">Property Listings Overview</h2>
 
-        <div class="kpi-row">
+        <div class="kpi-row" role="list">
           {% for label, value in property_kpis.items() %}
-            <div class="kpi-card">
+            <div class="kpi-card" role="listitem">
               <div class="kpi-label">{{ label }}</div>
               <div class="kpi-value">{{ value }}</div>
             </div>
@@ -39,13 +55,13 @@
 
       <!-- ECONOMIC INDICATORS SECTION -->
       {% if fred_kpis %}
-      <section class="section">
-        <h2 class="section-title">Market Economic Indicators</h2>
+      <section class="section" aria-labelledby="economic-indicators-title">
+        <h2 id="economic-indicators-title" class="section-title">Market Economic Indicators</h2>
         <p class="section-description">Latest FRED data for Nashville MSA</p>
 
-        <div class="kpi-row-wide">
+        <div class="kpi-row-wide" role="list">
           {% for label, value in fred_kpis.items() %}
-            <div class="kpi-card economic">
+            <div class="kpi-card economic" role="listitem">
               <div class="kpi-label">{{ label }}</div>
               <div class="kpi-value">{{ value }}</div>
             </div>
@@ -71,55 +87,898 @@
       </section>
       {% endif %}
 
-      <!-- RAW DATA TABLES SECTION -->
-      <section class="section">
-        <h2 class="section-title">Detailed Listings Data</h2>
+      <!-- PROPERTY SEARCH SECTION -->
+      <section class="section" aria-labelledby="property-search-title">
+        <h2 id="property-search-title" class="section-title">Property Search</h2>
 
-        <div class="tabs">
-          <button class="tab-button active" onclick="showTab('rentals')">Rental Listings</button>
-          <button class="tab-button" onclick="showTab('forsale')">For-Sale Listings</button>
+        <!-- SEARCH/FILTER FORM -->
+        <div class="search-panel card">
+          <form id="property-filter-form" class="filter-form">
+            <!-- PRIMARY FILTERS (always visible) -->
+            <div class="filter-grid-primary">
+              <!-- Property Type Filter (replaces tabs) -->
+              <div class="filter-group">
+                <label for="property-type">Property Type</label>
+                <select id="property-type" name="property_type">
+                  <option value="rental" selected>Rentals</option>
+                  <option value="forsale">For Sale</option>
+                </select>
+              </div>
+
+              <!-- Price Range -->
+              <div class="filter-group">
+                <label for="min-price">Min Price</label>
+                <input type="number" id="min-price" name="min_price"
+                       placeholder="$0" min="0" step="10000">
+              </div>
+              <div class="filter-group">
+                <label for="max-price">Max Price</label>
+                <input type="number" id="max-price" name="max_price"
+                       placeholder="Any" min="0" step="10000">
+              </div>
+
+              <!-- Bedrooms -->
+              <div class="filter-group">
+                <label for="min-beds">Bedrooms</label>
+                <select id="min-beds" name="min_beds">
+                  <option value="">Any</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                  <option value="4">4+</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- ADVANCED FILTERS (collapsible) -->
+            <div class="advanced-filters-toggle">
+              <button type="button" id="toggle-advanced" class="btn-text">
+                <span id="advanced-toggle-text">More Filters</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <div id="advanced-filters" class="filter-grid-advanced" style="display: none;">
+              <div class="filter-group">
+                <label for="max-beds">Max Beds</label>
+                <select id="max-beds" name="max_beds">
+                  <option value="">Any</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5+</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="min-baths">Min Baths</label>
+                <select id="min-baths" name="min_baths">
+                  <option value="">Any</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="max-baths">Max Baths</label>
+                <select id="max-baths" name="max_baths">
+                  <option value="">Any</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4+</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="min-sqft">Min Sq Ft</label>
+                <input type="number" id="min-sqft" name="min_sqft"
+                       placeholder="0" min="0" step="100">
+              </div>
+
+              <div class="filter-group">
+                <label for="max-sqft">Max Sq Ft</label>
+                <input type="number" id="max-sqft" name="max_sqft"
+                       placeholder="Any" min="0" step="100">
+              </div>
+
+              <div class="filter-group">
+                <label for="city">City</label>
+                <input type="text" id="city" name="city"
+                       placeholder="Nashville, Brentwood...">
+              </div>
+
+              <div class="filter-group">
+                <label for="zip-code">ZIP Code</label>
+                <input type="text" id="zip-code" name="zip_code"
+                       pattern="[0-9]{5}" placeholder="37201">
+              </div>
+            </div>
+
+            <!-- FILTER PREVIEW (Real-time feedback) -->
+            <div class="filter-preview">
+              <span id="filter-preview-count" class="filter-preview-count"></span>
+            </div>
+
+            <!-- Actions -->
+            <div class="filter-actions">
+              <button type="submit" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+                Search Properties
+              </button>
+              <button type="reset" class="btn btn-secondary">Clear Filters</button>
+              <button type="button" id="export-btn" class="btn btn-outline">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export CSV
+              </button>
+            </div>
+          </form>
         </div>
 
-        <div id="rentals-tab" class="tab-content active">
-          <div class="table-container card">
-            {% include "_rentals_table.html" %}
+        <!-- VIEW CONTROLS (Simplified - no tabs, just view toggle) -->
+        <div class="view-controls">
+          <div class="view-toggle">
+            <button class="view-btn active" data-view="table" aria-label="Table view">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="3" y1="15" x2="21" y2="15"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
+            </button>
+            <button class="view-btn" data-view="cards" aria-label="Card view">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </button>
+            <button class="view-btn" data-view="map" aria-label="Map view">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                <line x1="8" y1="2" x2="8" y2="18"></line>
+                <line x1="16" y1="6" x2="16" y2="22"></line>
+              </svg>
+            </button>
           </div>
         </div>
 
-        <div id="forsale-tab" class="tab-content">
-          <div class="table-container card">
-            {% include "_forsale_table.html" %}
-          </div>
+        <!-- ACTIVE FILTER CHIPS -->
+        <div id="active-filters" class="active-filters"></div>
+
+        <!-- RESULTS AREA -->
+        <div id="results-header" class="results-header" aria-live="polite">
+          <span id="result-count" class="result-count"></span>
         </div>
+
+        <!-- UNIFIED RESULTS CONTAINER (replaces tabs) -->
+        <div id="properties-container" class="table-container card">
+          {% include "_rentals_table.html" %}
+        </div>
+
+        <!-- MAP VIEW CONTAINER -->
+        <div id="map-view" class="map-container" style="display: none;">
+          <div id="property-map"></div>
+        </div>
+
+        <!-- PAGINATION -->
+        <div id="pagination" class="pagination" aria-label="Results pagination"></div>
       </section>
-    </div>
+    </main>
 
     <!-- FOOTER -->
     <footer class="footer">
       <div class="container">
-        <p>Data sources: Zillow (via RapidAPI) • Federal Reserve Economic Data (FRED)</p>
-        <p class="footer-note">Dashboard updated daily • Nashville MSA Market Analysis</p>
+        <p>Data sources: <a href="https://rapidapi.com/s.mahmoud97/api/zillow-com1" target="_blank" rel="noopener">Zillow (via RapidAPI)</a> &bull; <a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">Federal Reserve Economic Data (FRED)</a></p>
+        <p class="footer-note">
+          {% if last_updated %}
+            Last updated: {{ last_updated }}
+          {% else %}
+            Nashville MSA Market Analysis
+          {% endif %}
+        </p>
       </div>
     </footer>
 
+    <!-- Leaflet JS for Map View -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
     <script>
-      function showTab(tabName) {
-        // Hide all tab contents
-        document.querySelectorAll('.tab-content').forEach(content => {
-          content.classList.remove('active');
+    // ============================================================
+    // STATE MANAGEMENT
+    // ============================================================
+    const state = {
+      propertyType: 'rental',
+      viewMode: 'table',
+      currentPage: 1,
+      perPage: 20,
+      filters: {},
+      sortBy: null,
+      sortOrder: 'asc',
+      useApi: false,
+      cachedProperties: []
+    };
+
+    // ============================================================
+    // DOM ELEMENTS
+    // ============================================================
+    const form = document.getElementById('property-filter-form');
+    const exportBtn = document.getElementById('export-btn');
+    const resultCount = document.getElementById('result-count');
+    const pagination = document.getElementById('pagination');
+    const viewButtons = document.querySelectorAll('.view-btn');
+    const propertiesContainer = document.getElementById('properties-container');
+    const mapContainer = document.getElementById('map-view');
+    const activeFiltersContainer = document.getElementById('active-filters');
+    const filterPreviewCount = document.getElementById('filter-preview-count');
+    const propertyTypeSelect = document.getElementById('property-type');
+
+    // ============================================================
+    // MAP VARIABLES
+    // ============================================================
+    let map = null;
+    let markersLayer = null;
+
+    // ============================================================
+    // UTILITY FUNCTIONS
+    // ============================================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatPrice(price) {
+      if (!price && price !== 0) return 'N/A';
+      return '$' + Number(price).toLocaleString();
+    }
+
+    function formatNumber(num) {
+      if (!num && num !== 0) return 'N/A';
+      return Number(num).toLocaleString();
+    }
+
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // ============================================================
+    // MAP FUNCTIONS
+    // ============================================================
+    function initializeMap() {
+      if (map) return;
+
+      // Center on Nashville: 36.1627, -86.7816
+      map = L.map('property-map').setView([36.1627, -86.7816], 11);
+
+      // Add OpenStreetMap tiles (free)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18
+      }).addTo(map);
+
+      // Create marker cluster group
+      markersLayer = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false
+      });
+
+      map.addLayer(markersLayer);
+    }
+
+    function getPriceColor(price) {
+      if (price < 200000) return '#48bb78';      // Green (affordable)
+      if (price < 350000) return '#4299e1';      // Blue (moderate)
+      if (price < 500000) return '#ed8936';      // Orange (expensive)
+      return '#f56565';                           // Red (very expensive)
+    }
+
+    function renderPropertyMap(properties) {
+      if (!map) initializeMap();
+
+      // Clear existing markers
+      markersLayer.clearLayers();
+
+      properties.forEach(prop => {
+        if (!prop.latitude || !prop.longitude) return;
+
+        const color = getPriceColor(prop.price || 0);
+
+        // Create custom colored marker
+        const marker = L.circleMarker([prop.latitude, prop.longitude], {
+          radius: 8,
+          fillColor: color,
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
         });
 
-        // Remove active class from all buttons
-        document.querySelectorAll('.tab-button').forEach(button => {
-          button.classList.remove('active');
-        });
+        // Create popup with property details
+        const pricePerSqft = prop.price_per_sqft ? `$${Math.round(prop.price_per_sqft)}/sqft` : '';
+        const popupContent = `
+          <div class="map-popup">
+            <p class="popup-price" style="color: ${color}; font-weight: 700; font-size: 18px; margin: 0 0 4px 0;">
+              ${formatPrice(prop.price)}
+            </p>
+            ${pricePerSqft ? `<p style="font-size: 13px; color: #667eea; margin: 0 0 4px 0;">${pricePerSqft}</p>` : ''}
+            <p class="popup-address" style="font-size: 13px; color: #4a5568; margin: 0 0 8px 0;">
+              ${escapeHtml(prop.address || 'Unknown')}
+            </p>
+            <p class="popup-details" style="font-size: 12px; color: #718096; margin: 0 0 8px 0;">
+              ${prop.bedrooms || '?'} bed &bull; ${prop.bathrooms || '?'} bath &bull; ${formatNumber(prop.livingArea)} sqft
+            </p>
+            ${prop.detailUrl ?
+              `<a href="${prop.detailUrl}" target="_blank" rel="noopener"
+                 style="color: #667eea; font-size: 12px; font-weight: 500; text-decoration: none;">
+                View on Zillow &rarr;
+              </a>` : ''
+            }
+          </div>
+        `;
 
-        // Show selected tab content
-        document.getElementById(tabName + '-tab').classList.add('active');
+        marker.bindPopup(popupContent);
+        markersLayer.addLayer(marker);
+      });
 
-        // Add active class to clicked button
-        event.target.classList.add('active');
+      // Auto-fit bounds to show all markers
+      if (properties.length > 0 && markersLayer.getLayers().length > 0) {
+        const bounds = markersLayer.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [50, 50] });
+        }
       }
+    }
+
+    // ============================================================
+    // SORTING FUNCTIONS
+    // ============================================================
+    function sortProperties(properties, sortBy, sortOrder) {
+      if (!sortBy) return properties;
+
+      return [...properties].sort((a, b) => {
+        let aVal = a[sortBy];
+        let bVal = b[sortBy];
+
+        // Handle null/undefined
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+
+        // String comparison for address
+        if (sortBy === 'address') {
+          aVal = String(aVal).toLowerCase();
+          bVal = String(bVal).toLowerCase();
+        }
+
+        // Numeric comparison
+        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    function updateSortIcons() {
+      document.querySelectorAll('.sort-btn').forEach(btn => {
+        const icon = btn.querySelector('.sort-icon');
+        if (icon) {
+          icon.innerHTML = '';
+          if (btn.dataset.sort === state.sortBy) {
+            btn.classList.add('sorted');
+            icon.innerHTML = state.sortOrder === 'asc' ? ' &#9650;' : ' &#9660;';
+          } else {
+            btn.classList.remove('sorted');
+          }
+        }
+      });
+    }
+
+    function attachSortHandlers() {
+      document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const column = this.dataset.sort;
+
+          if (state.sortBy === column) {
+            state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            state.sortBy = column;
+            state.sortOrder = 'asc';
+          }
+
+          // Re-render with sorted data
+          if (state.cachedProperties.length > 0) {
+            const sorted = sortProperties(state.cachedProperties, state.sortBy, state.sortOrder);
+            renderPropertyTable(sorted, propertiesContainer);
+          } else {
+            fetchProperties();
+          }
+        });
+      });
+    }
+
+    // ============================================================
+    // FILTER CHIPS
+    // ============================================================
+    function renderActiveFilters() {
+      const filterLabels = {
+        property_type: 'Type',
+        min_price: 'Min Price',
+        max_price: 'Max Price',
+        min_beds: 'Min Beds',
+        max_beds: 'Max Beds',
+        min_baths: 'Min Baths',
+        max_baths: 'Max Baths',
+        min_sqft: 'Min Sqft',
+        max_sqft: 'Max Sqft',
+        city: 'City',
+        zip_code: 'ZIP'
+      };
+
+      let chips = '';
+
+      Object.entries(state.filters).forEach(([key, value]) => {
+        if (value && value !== '' && key !== 'property_type') {
+          const label = filterLabels[key] || key;
+          let displayValue = value;
+          if (key.includes('price')) {
+            displayValue = '$' + Number(value).toLocaleString();
+          }
+          chips += `
+            <span class="filter-chip">
+              <span class="chip-label">${label}:</span>
+              <span class="chip-value">${escapeHtml(String(displayValue))}</span>
+              <button class="chip-remove" data-filter="${key}" aria-label="Remove ${label} filter">
+                &times;
+              </button>
+            </span>
+          `;
+        }
+      });
+
+      activeFiltersContainer.innerHTML = chips;
+
+      // Attach remove handlers
+      activeFiltersContainer.querySelectorAll('.chip-remove').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const filterKey = this.dataset.filter;
+          delete state.filters[filterKey];
+
+          // Clear form field
+          const input = form.querySelector(`[name="${filterKey}"]`);
+          if (input) input.value = '';
+
+          fetchProperties();
+        });
+      });
+    }
+
+    // ============================================================
+    // REAL-TIME FILTER PREVIEW
+    // ============================================================
+    const debouncedFilterUpdate = debounce(() => {
+      updateFilterPreview();
+    }, 500);
+
+    async function updateFilterPreview() {
+      const formData = new FormData(form);
+      const filters = Object.fromEntries(formData.entries());
+
+      try {
+        const params = new URLSearchParams();
+        params.set('property_type', filters.property_type || 'rental');
+
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== '' && value !== null && key !== 'property_type') {
+            params.set(key, value);
+          }
+        });
+
+        params.set('page', '1');
+        params.set('per_page', '1');
+
+        const response = await fetch(`/api/properties/search?${params.toString()}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          const count = data.pagination.total_count;
+          const typeLabel = filters.property_type === 'rental' ? 'rental' :
+                           filters.property_type === 'forsale' ? 'for-sale' : '';
+
+          if (count === 0) {
+            filterPreviewCount.innerHTML = `
+              <span class="preview-warning">
+                No ${typeLabel} properties match these filters
+              </span>
+            `;
+          } else {
+            filterPreviewCount.innerHTML = `
+              <span class="preview-success">
+                ${count.toLocaleString()} ${typeLabel} ${count === 1 ? 'property' : 'properties'} found
+              </span>
+            `;
+          }
+        }
+      } catch (error) {
+        console.error('Preview failed:', error);
+      }
+    }
+
+    function attachFilterListeners() {
+      const filterInputs = form.querySelectorAll('input, select');
+      filterInputs.forEach(input => {
+        input.addEventListener('input', debouncedFilterUpdate);
+        input.addEventListener('change', debouncedFilterUpdate);
+      });
+    }
+
+    // ============================================================
+    // API INTEGRATION
+    // ============================================================
+    function buildQueryString(includePagination = true) {
+      const params = new URLSearchParams();
+      params.set('property_type', state.propertyType);
+
+      Object.entries(state.filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          params.set(key, value);
+        }
+      });
+
+      if (includePagination) {
+        params.set('page', state.currentPage);
+        params.set('per_page', state.perPage);
+      }
+
+      return params.toString();
+    }
+
+    async function fetchProperties() {
+      try {
+        propertiesContainer.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading properties...</div>';
+        propertiesContainer.style.display = 'block';
+        mapContainer.style.display = 'none';
+        resultCount.textContent = '';
+        pagination.innerHTML = '';
+
+        const response = await fetch(`/api/properties/search?${buildQueryString()}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load properties');
+        }
+
+        // Cache properties for sorting
+        state.cachedProperties = data.properties;
+
+        const typeLabel = state.propertyType === 'rental' ? 'rental' : 'for-sale';
+        resultCount.textContent = `${data.pagination.total_count.toLocaleString()} ${typeLabel} properties found`;
+
+        // Sort if needed
+        let displayProperties = data.properties;
+        if (state.sortBy) {
+          displayProperties = sortProperties(data.properties, state.sortBy, state.sortOrder);
+        }
+
+        // Render based on view mode
+        if (state.viewMode === 'map') {
+          propertiesContainer.style.display = 'none';
+          mapContainer.style.display = 'block';
+          initializeMap();
+          setTimeout(() => {
+            map.invalidateSize();
+            renderPropertyMap(displayProperties);
+          }, 100);
+        } else if (state.viewMode === 'cards') {
+          propertiesContainer.style.display = 'block';
+          mapContainer.style.display = 'none';
+          renderPropertyCards(displayProperties, propertiesContainer);
+        } else {
+          propertiesContainer.style.display = 'block';
+          mapContainer.style.display = 'none';
+          renderPropertyTable(displayProperties, propertiesContainer);
+        }
+
+        renderPagination(data.pagination);
+        renderActiveFilters();
+
+      } catch (error) {
+        propertiesContainer.innerHTML = `<div class="error-state"><p>Error loading properties: ${escapeHtml(error.message)}</p><button class="btn btn-secondary" onclick="fetchProperties()">Retry</button></div>`;
+        resultCount.textContent = '';
+      }
+    }
+
+    // ============================================================
+    // RENDERING FUNCTIONS
+    // ============================================================
+    function renderPropertyTable(properties, container) {
+      if (properties.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="M21 21l-4.35-4.35"></path>
+              </svg>
+            </div>
+            <h3 class="empty-title">No Properties Found</h3>
+            <p class="empty-description">Try adjusting your search filters to find more properties.</p>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+          </div>`;
+        return;
+      }
+
+      const priceLabel = state.propertyType === 'rental' ? 'Rent' : 'Price';
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">
+                <button class="sort-btn" data-sort="address">
+                  Address<span class="sort-icon"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-btn" data-sort="price">
+                  ${priceLabel}<span class="sort-icon"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-btn" data-sort="price_per_sqft">
+                  $/Sqft<span class="sort-icon"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-btn" data-sort="bedrooms">
+                  Beds<span class="sort-icon"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-btn" data-sort="bathrooms">
+                  Baths<span class="sort-icon"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-btn" data-sort="livingArea">
+                  Sq Ft<span class="sort-icon"></span>
+                </button>
+              </th>
+              <th scope="col">Type</th>
+              <th scope="col">
+                <button class="sort-btn" data-sort="daysOnZillow">
+                  Days<span class="sort-icon"></span>
+                </button>
+              </th>
+              <th scope="col">View</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      properties.forEach(prop => {
+        const pricePerSqft = prop.price_per_sqft ? `$${Math.round(prop.price_per_sqft)}` : 'N/A';
+        html += `
+          <tr>
+            <td class="address-cell">${escapeHtml(prop.address || 'Unknown')}</td>
+            <td class="price-cell">${formatPrice(prop.price)}</td>
+            <td class="price-sqft-cell">${pricePerSqft}</td>
+            <td>${prop.bedrooms ?? 'N/A'}</td>
+            <td>${prop.bathrooms ?? 'N/A'}</td>
+            <td>${formatNumber(prop.livingArea)}</td>
+            <td>${escapeHtml(prop.propertyType || 'N/A')}</td>
+            <td>${prop.daysOnZillow ?? 'N/A'}</td>
+            <td>${prop.detailUrl ? `<a href="${prop.detailUrl}" target="_blank" rel="noopener" class="btn-link">Zillow</a>` : '-'}</td>
+          </tr>`;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+
+      // Attach sort handlers and update icons
+      attachSortHandlers();
+      updateSortIcons();
+    }
+
+    function renderPropertyCards(properties, container) {
+      if (properties.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="M21 21l-4.35-4.35"></path>
+              </svg>
+            </div>
+            <h3 class="empty-title">No Properties Found</h3>
+            <p class="empty-description">Try adjusting your search filters to find more properties.</p>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+          </div>`;
+        return;
+      }
+
+      let html = '<div class="property-cards">';
+
+      properties.forEach(prop => {
+        const beds = prop.bedrooms ? `${prop.bedrooms} bed` : '';
+        const baths = prop.bathrooms ? `${prop.bathrooms} bath` : '';
+        const sqft = prop.livingArea ? `${formatNumber(prop.livingArea)} sqft` : '';
+        const features = [beds, baths, sqft].filter(Boolean).join(' &bull; ');
+        const pricePerSqft = prop.price_per_sqft ? `$${Math.round(prop.price_per_sqft)}/sqft` : '';
+
+        html += `
+          <article class="property-card">
+            <div class="property-image">
+              ${prop.imgSrc
+                ? `<img src="${prop.imgSrc}" alt="Property at ${escapeHtml(prop.address)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'no-image\\'>No Image</div>'">`
+                : '<div class="no-image">No Image</div>'
+              }
+              ${prop.daysOnZillow !== null ? `<span class="property-badge">${prop.daysOnZillow} days</span>` : ''}
+            </div>
+            <div class="property-info">
+              <p class="property-price">${formatPrice(prop.price)}</p>
+              ${pricePerSqft ? `<p class="property-price-sqft">${pricePerSqft}</p>` : ''}
+              <p class="property-address">${escapeHtml(prop.address || 'Unknown Address')}</p>
+              <p class="property-features">${features || 'No details available'}</p>
+              ${prop.detailUrl
+                ? `<a href="${prop.detailUrl}" target="_blank" rel="noopener" class="property-link">View on Zillow</a>`
+                : ''
+              }
+            </div>
+          </article>`;
+      });
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderPagination(paginationData) {
+      if (paginationData.total_pages <= 1) {
+        pagination.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+
+      html += `<button class="page-btn" ${!paginationData.has_prev ? 'disabled' : ''} onclick="goToPage(${paginationData.page - 1})">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Previous
+      </button>`;
+
+      html += `<span class="page-info">Page ${paginationData.page} of ${paginationData.total_pages}</span>`;
+
+      html += `<button class="page-btn" ${!paginationData.has_next ? 'disabled' : ''} onclick="goToPage(${paginationData.page + 1})">
+        Next
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>`;
+
+      pagination.innerHTML = html;
+    }
+
+    // ============================================================
+    // EVENT HANDLERS
+    // ============================================================
+    function goToPage(page) {
+      state.currentPage = page;
+      fetchProperties();
+      document.getElementById('property-search-title').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function clearFilters() {
+      form.reset();
+      state.filters = {};
+      state.currentPage = 1;
+      state.sortBy = null;
+      state.sortOrder = 'asc';
+      filterPreviewCount.innerHTML = '';
+      fetchProperties();
+    }
+
+    // Property type change
+    propertyTypeSelect.addEventListener('change', function() {
+      state.propertyType = this.value;
+      state.currentPage = 1;
+      debouncedFilterUpdate();
+    });
+
+    // Advanced filters toggle
+    document.getElementById('toggle-advanced').addEventListener('click', function() {
+      const advancedSection = document.getElementById('advanced-filters');
+      const toggleText = document.getElementById('advanced-toggle-text');
+      const chevron = this.querySelector('.chevron');
+
+      if (advancedSection.style.display === 'none') {
+        advancedSection.style.display = 'grid';
+        toggleText.textContent = 'Fewer Filters';
+        chevron.style.transform = 'rotate(180deg)';
+      } else {
+        advancedSection.style.display = 'none';
+        toggleText.textContent = 'More Filters';
+        chevron.style.transform = 'rotate(0deg)';
+      }
+    });
+
+    // View toggle
+    viewButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        state.viewMode = this.dataset.view;
+
+        viewButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+
+        if (state.useApi || state.cachedProperties.length > 0) {
+          fetchProperties();
+        }
+      });
+    });
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(form);
+      state.filters = Object.fromEntries(formData.entries());
+      state.propertyType = state.filters.property_type || 'rental';
+      state.currentPage = 1;
+      state.useApi = true;
+      fetchProperties();
+    });
+
+    // Form reset
+    form.addEventListener('reset', function() {
+      state.filters = {};
+      state.currentPage = 1;
+      state.sortBy = null;
+      state.sortOrder = 'asc';
+      state.propertyType = 'rental';
+      filterPreviewCount.innerHTML = '';
+      activeFiltersContainer.innerHTML = '';
+      setTimeout(() => {
+        propertyTypeSelect.value = 'rental';
+        if (state.useApi) {
+          fetchProperties();
+        }
+      }, 0);
+    });
+
+    // Export
+    exportBtn.addEventListener('click', function() {
+      const url = `/api/properties/export?${buildQueryString(false)}`;
+      window.location.href = url;
+    });
+
+    // ============================================================
+    // INITIALIZATION
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      attachFilterListeners();
+      // Initial preview
+      updateFilterPreview();
+    });
     </script>
   </body>
 </html>

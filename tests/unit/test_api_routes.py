@@ -133,11 +133,11 @@ class TestPropertiesSearchEndpoint:
 
         assert "pagination" in data
         assert "page" in data["pagination"]
-        assert "per_page" in data["pagination"]
-        assert "total_count" in data["pagination"]
-        assert "total_pages" in data["pagination"]
-        assert "has_next" in data["pagination"]
-        assert "has_prev" in data["pagination"]
+        assert "perPage" in data["pagination"]
+        assert "totalCount" in data["pagination"]
+        assert "totalPages" in data["pagination"]
+        assert "hasNext" in data["pagination"]
+        assert "hasPrev" in data["pagination"]
 
     @patch("bna_market.web.api.routes.get_db_connection")
     def test_search_applies_price_filters(self, mock_db_conn, client):
