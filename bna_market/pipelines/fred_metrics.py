@@ -80,7 +80,9 @@ def fetch_fred_metrics() -> pd.DataFrame:
         >>> df = fetch_fred_metrics()
         >>> print(df.groupby('metric_name').size())
     """
-    api_key = settings["fred_api_key"]
+    # Import os here to check environment directly (for test compatibility)
+    import os
+    api_key = os.getenv("FRED_API_KEY", "")
     if not api_key:
         raise ValueError("FRED_API_KEY not found in environment")
 

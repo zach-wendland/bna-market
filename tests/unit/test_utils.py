@@ -99,7 +99,7 @@ class TestRetry:
         """Should retry until success"""
         call_count = [0]
 
-        @retry_with_backoff(max_retries=3, initial_delay=0.01)
+        @retry_with_backoff(max_retries=3, base_delay=0.01)
         def flaky_func():
             call_count[0] += 1
             if call_count[0] < 3:
@@ -114,7 +114,7 @@ class TestRetry:
     def test_retry_fails_after_max_attempts(self):
         """Should raise exception after max retries"""
 
-        @retry_with_backoff(max_retries=2, initial_delay=0.01)
+        @retry_with_backoff(max_retries=2, base_delay=0.01)
         def always_fails():
             raise ValueError("Always fails")
 
@@ -139,6 +139,7 @@ class TestEnvValidator:
         monkeypatch.delenv("RAPID_API_KEY", raising=False)
         monkeypatch.delenv("FRED_API_KEY", raising=False)
 
-        result = validate_environment()
+        # Pass reload_dotenv=False to prevent re-reading .env file
+        result = validate_environment(reload_dotenv=False)
 
         assert result is False

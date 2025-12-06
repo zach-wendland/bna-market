@@ -18,7 +18,7 @@ def retry_with_backoff(
     base_delay: float = 1.0,
     max_delay: float = 60.0,
     exponential_base: float = 2.0,
-    retry_on: Tuple[Type[Exception], ...] = (requests.exceptions.RequestException,),
+    retry_on: Tuple[Type[Exception], ...] = (requests.exceptions.RequestException, ConnectionError),
 ):
     """
     Decorator for retrying functions with exponential backoff

@@ -60,9 +60,12 @@ def read_table_safely(table_name: str, conn: sqlite3.Connection) -> pd.DataFrame
         df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
         logger.debug(f"Read {len(df)} rows from {table_name}")
         return df
-    except sqlite3.OperationalError:
-        logger.info(f"Table {table_name} doesn't exist yet")
-        return pd.DataFrame()
-    except sqlite3.DatabaseError as e:
-        logger.error(f"Database error reading {table_name}: {e}")
-        raise
+    except (sqlite3.OperationalError, pd.errors.DatabaseError) as e:
+        # Handle both missing tables and pandas-wrapped database errors
+        error_msg = str(e).lower()
+        if "no such table" in error_msg or "doesn't exist" in error_msg:
+            logger.info(f"Table {table_name} doesn't exist yet")
+            return pd.DataFrame()
+        else:
+            logger.error(f"Database error reading {table_name}: {e}")
+            raise

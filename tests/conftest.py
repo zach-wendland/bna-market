@@ -13,7 +13,7 @@ def sample_zillow_response():
     """Sample Zillow API response for testing"""
     return {
         "totalResultCount": 2,
-        "results": [
+        "props": [
             {
                 "zpid": 12345,
                 "price": 350000,

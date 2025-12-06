@@ -37,7 +37,8 @@ class TestForSalePipeline:
 
     def test_forsale_pipe_requires_api_key(self, monkeypatch):
         """Should raise ValueError if API key missing"""
-        monkeypatch.delenv("RAPID_API_KEY", raising=False)
+        # Set env var to empty string (monkeypatch.delenv doesn't work after load_dotenv)
+        monkeypatch.setenv("RAPID_API_KEY", "")
 
         with pytest.raises(ValueError, match="RAPID_API_KEY not found"):
             fetch_for_sale_properties()
@@ -59,7 +60,8 @@ class TestRentalPipeline:
 
     def test_rental_pipe_requires_api_key(self, monkeypatch):
         """Should raise ValueError if API key missing"""
-        monkeypatch.delenv("RAPID_API_KEY", raising=False)
+        # Set env var to empty string (monkeypatch.delenv doesn't work after load_dotenv)
+        monkeypatch.setenv("RAPID_API_KEY", "")
 
         with pytest.raises(ValueError, match="RAPID_API_KEY not found"):
             fetch_rental_properties()
@@ -87,7 +89,8 @@ class TestFredMetricsPipeline:
 
     def test_fred_pipe_requires_api_key(self, monkeypatch):
         """Should raise ValueError if API key missing"""
-        monkeypatch.delenv("FRED_API_KEY", raising=False)
+        # Set env var to empty string (monkeypatch.delenv doesn't work after load_dotenv)
+        monkeypatch.setenv("FRED_API_KEY", "")
 
         with pytest.raises(ValueError, match="FRED_API_KEY not found"):
             fetch_fred_metrics()

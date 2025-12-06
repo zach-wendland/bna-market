@@ -34,7 +34,9 @@ def fetch_for_sale_properties() -> pd.DataFrame:
         >>> df = fetch_for_sale_properties()
         >>> print(f"Fetched {len(df)} properties")
     """
-    api_key = settings["rapid_api_key"]
+    # Import os here to check environment directly (for test compatibility)
+    import os
+    api_key = os.getenv("RAPID_API_KEY", "")
     if not api_key:
         raise ValueError("RAPID_API_KEY not found in environment")
 

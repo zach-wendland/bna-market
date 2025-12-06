@@ -57,7 +57,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
     "--verbose",
-    "--cov=.",
+    "--cov=bna_market",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-fail-under=80",

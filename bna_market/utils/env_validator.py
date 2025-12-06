@@ -12,14 +12,19 @@ from bna_market.utils.logger import setup_logger
 logger = setup_logger("env_validator")
 
 
-def validate_environment() -> bool:
+def validate_environment(reload_dotenv: bool = True) -> bool:
     """
     Validate all required environment variables are set
+
+    Args:
+        reload_dotenv: Whether to reload .env file (default True)
+                      Set to False in tests to check actual env vars
 
     Returns:
         True if all required variables are present, False otherwise
     """
-    load_dotenv()
+    if reload_dotenv:
+        load_dotenv()
 
     required_vars: Dict[str, str] = {
         "RAPID_API_KEY": "RapidAPI key for Zillow data",
