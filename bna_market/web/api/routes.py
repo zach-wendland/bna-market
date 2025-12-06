@@ -134,7 +134,13 @@ def search_properties():
             columns = [desc[0] for desc in cursor.description]
             properties = []
             for row in cursor.fetchall():
-                properties.append(dict(zip(columns, row)))
+                prop = dict(zip(columns, row))
+                # Calculate price per square foot
+                if prop.get('price') and prop.get('livingArea') and prop['livingArea'] > 0:
+                    prop['price_per_sqft'] = round(prop['price'] / prop['livingArea'], 2)
+                else:
+                    prop['price_per_sqft'] = None
+                properties.append(prop)
 
         # Calculate pagination metadata
         total_pages = (total_count + per_page - 1) // per_page
