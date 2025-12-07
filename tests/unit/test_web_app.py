@@ -16,9 +16,10 @@ from bna_market.web.app import create_app
 def test_db():
     """Create temporary test database with sample data"""
     fd, db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)  # Close file descriptor immediately on Windows
     conn = sqlite3.connect(db_path)
 
-    # Create tables
+    # Create tables with full schema to match dashboard queries
     conn.execute("""
         CREATE TABLE BNA_FORSALE (
             zpid INTEGER,
@@ -26,7 +27,14 @@ def test_db():
             address TEXT,
             bedrooms INTEGER,
             bathrooms REAL,
-            livingArea INTEGER
+            livingArea INTEGER,
+            propertyType TEXT,
+            latitude REAL,
+            longitude REAL,
+            imgSrc TEXT,
+            detailUrl TEXT,
+            daysOnZillow INTEGER,
+            listingStatus TEXT
         )
     """)
 
@@ -37,7 +45,14 @@ def test_db():
             address TEXT,
             bedrooms INTEGER,
             bathrooms REAL,
-            livingArea INTEGER
+            livingArea INTEGER,
+            propertyType TEXT,
+            latitude REAL,
+            longitude REAL,
+            imgSrc TEXT,
+            detailUrl TEXT,
+            daysOnZillow INTEGER,
+            listingStatus TEXT
         )
     """)
 
@@ -50,20 +65,24 @@ def test_db():
         )
     """)
 
-    # Insert sample data
-    conn.execute(
-        "INSERT INTO BNA_FORSALE VALUES (1, 350000, '123 Main St', 3, 2.0, 1800)"
-    )
-    conn.execute(
-        "INSERT INTO BNA_FORSALE VALUES (2, 420000, '456 Oak Ave', 4, 3.0, 2200)"
-    )
+    # Insert sample data with full columns
+    conn.execute("""
+        INSERT INTO BNA_FORSALE VALUES
+        (1, 350000, '123 Main St, Nashville, TN', 3, 2.0, 1800, 'SINGLE_FAMILY', 36.16, -86.78, NULL, '/homedetails/1', 5, 'FOR_SALE')
+    """)
+    conn.execute("""
+        INSERT INTO BNA_FORSALE VALUES
+        (2, 420000, '456 Oak Ave, Nashville, TN', 4, 3.0, 2200, 'SINGLE_FAMILY', 36.15, -86.80, NULL, '/homedetails/2', 10, 'FOR_SALE')
+    """)
 
-    conn.execute(
-        "INSERT INTO BNA_RENTALS VALUES (3, 1800, '789 Pine Dr', 2, 1.0, 1000)"
-    )
-    conn.execute(
-        "INSERT INTO BNA_RENTALS VALUES (4, 2200, '321 Elm St', 3, 2.0, 1400)"
-    )
+    conn.execute("""
+        INSERT INTO BNA_RENTALS VALUES
+        (3, 1800, '789 Pine Dr, Nashville, TN', 2, 1.0, 1000, 'APARTMENT', 36.17, -86.79, NULL, '/homedetails/3', 7, 'FOR_RENT')
+    """)
+    conn.execute("""
+        INSERT INTO BNA_RENTALS VALUES
+        (4, 2200, '321 Elm St, Nashville, TN', 3, 2.0, 1400, 'TOWNHOUSE', 36.14, -86.81, NULL, '/homedetails/4', 3, 'FOR_RENT')
+    """)
 
     # Insert FRED metrics with recent dates
     base_date = datetime.now() - timedelta(days=30)
@@ -87,17 +106,21 @@ def test_db():
 
     yield db_path
 
-    os.close(fd)
-    os.unlink(db_path)
+    # Cleanup - file descriptor already closed at the start
+    try:
+        os.unlink(db_path)
+    except PermissionError:
+        pass  # On Windows, file might still be locked
 
 
 @pytest.fixture
 def empty_db():
     """Create temporary empty test database"""
     fd, db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)  # Close file descriptor immediately on Windows
     conn = sqlite3.connect(db_path)
 
-    # Create empty tables
+    # Create empty tables with full schema
     conn.execute("""
         CREATE TABLE BNA_FORSALE (
             zpid INTEGER,
@@ -105,7 +128,14 @@ def empty_db():
             address TEXT,
             bedrooms INTEGER,
             bathrooms REAL,
-            livingArea INTEGER
+            livingArea INTEGER,
+            propertyType TEXT,
+            latitude REAL,
+            longitude REAL,
+            imgSrc TEXT,
+            detailUrl TEXT,
+            daysOnZillow INTEGER,
+            listingStatus TEXT
         )
     """)
 
@@ -116,7 +146,14 @@ def empty_db():
             address TEXT,
             bedrooms INTEGER,
             bathrooms REAL,
-            livingArea INTEGER
+            livingArea INTEGER,
+            propertyType TEXT,
+            latitude REAL,
+            longitude REAL,
+            imgSrc TEXT,
+            detailUrl TEXT,
+            daysOnZillow INTEGER,
+            listingStatus TEXT
         )
     """)
 
@@ -134,8 +171,11 @@ def empty_db():
 
     yield db_path
 
-    os.close(fd)
-    os.unlink(db_path)
+    # Cleanup - file descriptor already closed above
+    try:
+        os.unlink(db_path)
+    except PermissionError:
+        pass  # On Windows, file might still be locked
 
 
 class TestCreateApp:
@@ -160,51 +200,58 @@ class TestCreateApp:
         app = create_app()
         assert "api" in [bp.name for bp in app.blueprints.values()]
 
-    def test_app_has_dashboard_route(self):
-        """Should have dashboard route registered"""
+    def test_app_has_api_dashboard_route(self):
+        """Should have API dashboard route registered"""
         app = create_app()
         rules = [str(rule) for rule in app.url_map.iter_rules()]
-        assert "/" in rules
+        assert "/api/dashboard" in rules
 
 
-class TestDashboardRoute:
-    """Tests for dashboard route"""
+class TestAPIDashboardRoute:
+    """Tests for API dashboard endpoint (Vue frontend consumes this)"""
 
-    def test_dashboard_with_data(self, test_db):
-        """Should render dashboard with property and FRED data"""
+    def test_api_dashboard_with_data(self, test_db):
+        """Should return dashboard JSON with property and FRED data"""
         app = create_app(config={"DATABASE_PATH": test_db, "TESTING": True})
         client = app.test_client()
 
-        response = client.get("/")
+        response = client.get("/api/dashboard")
 
         assert response.status_code == 200
-        assert b"BNA Market" in response.data or b"dashboard" in response.data.lower()
+        data = response.get_json()
+        assert "propertyKPIs" in data
+        assert "fredKPIs" in data
+        assert "rentals" in data
+        assert "forsale" in data
 
-    def test_dashboard_with_empty_database(self, empty_db):
-        """Should render dashboard with empty state messages"""
+    def test_api_dashboard_with_empty_database(self, empty_db):
+        """Should return dashboard JSON with zero counts for empty database"""
         app = create_app(config={"DATABASE_PATH": empty_db, "TESTING": True})
         client = app.test_client()
 
-        response = client.get("/")
+        response = client.get("/api/dashboard")
 
         assert response.status_code == 200
-        # Should contain "no data" messages
-        assert b"No rental data" in response.data or b"0" in response.data
+        data = response.get_json()
+        assert data["propertyKPIs"]["totalRentalListings"] == 0
+        assert data["propertyKPIs"]["totalForSaleListings"] == 0
 
-    def test_dashboard_calculates_property_kpis(self, test_db):
+    def test_api_dashboard_calculates_property_kpis(self, test_db):
         """Should calculate property KPIs correctly"""
         app = create_app(config={"DATABASE_PATH": test_db, "TESTING": True})
 
         with app.test_client() as client:
-            response = client.get("/")
+            response = client.get("/api/dashboard")
             assert response.status_code == 200
 
-            # Check that data is present (KPIs calculated)
-            data = response.data.decode()
-            assert "385,000" in data or "2,000" in data  # Average prices
+            data = response.get_json()
+            # Verify KPIs are calculated (2 forsale, 2 rental in test_db)
+            assert data["propertyKPIs"]["totalForSaleListings"] == 2
+            assert data["propertyKPIs"]["totalRentalListings"] == 2
+            assert data["propertyKPIs"]["avgSalePrice"] is not None
 
-    def test_dashboard_handles_missing_table_gracefully(self, tmpdir):
-        """Should handle missing database tables without crashing"""
+    def test_api_dashboard_handles_missing_table_gracefully(self, tmpdir):
+        """Should return error for missing database tables"""
         # Create empty database without tables
         db_path = str(tmpdir.join("test.db"))
         conn = sqlite3.connect(db_path)
@@ -213,32 +260,35 @@ class TestDashboardRoute:
         app = create_app(config={"DATABASE_PATH": db_path, "TESTING": True})
         client = app.test_client()
 
-        # Should not crash, should handle error gracefully
-        response = client.get("/")
-        assert response.status_code == 200
+        # Should return 500 with error message (tables don't exist)
+        response = client.get("/api/dashboard")
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "error" in data
 
-    def test_dashboard_generates_plotly_charts(self, test_db):
-        """Should generate Plotly charts in HTML"""
+    def test_api_dashboard_returns_fred_metrics(self, test_db):
+        """Should return FRED metrics when available"""
         app = create_app(config={"DATABASE_PATH": test_db, "TESTING": True})
         client = app.test_client()
 
-        response = client.get("/")
-        data = response.data.decode()
+        response = client.get("/api/dashboard")
+        data = response.get_json()
 
-        # Check for Plotly chart markers
-        assert "plotly" in data.lower() or "chart" in data.lower()
+        assert response.status_code == 200
+        assert "fredMetrics" in data
+        assert len(data["fredMetrics"]) > 0
 
-    def test_dashboard_with_fred_metrics(self, test_db):
-        """Should display FRED metrics when available"""
+    def test_api_dashboard_returns_properties(self, test_db):
+        """Should return property arrays for rentals and forsale"""
         app = create_app(config={"DATABASE_PATH": test_db, "TESTING": True})
         client = app.test_client()
 
-        response = client.get("/")
-        data = response.data.decode()
+        response = client.get("/api/dashboard")
+        data = response.get_json()
 
-        # Should contain FRED data (median price, employment, etc.)
         assert response.status_code == 200
-        assert len(data) > 1000  # Should have substantial HTML content
+        assert isinstance(data["rentals"], list)
+        assert isinstance(data["forsale"], list)
 
 
 class TestAppIntegration:

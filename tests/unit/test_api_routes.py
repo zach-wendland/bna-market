@@ -325,3 +325,312 @@ class TestTableNameSecurityMapping:
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
+
+
+class TestSearchFiltersComprehensive:
+    """Additional tests for search filter coverage"""
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_applies_bedroom_filters(self, mock_db_conn, client):
+        """Should apply bedroom filters correctly"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (5,)
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/properties/search?property_type=forsale&min_beds=2&max_beds=4")
+        assert response.status_code == 200
+
+        calls = mock_cursor.execute.call_args_list
+        count_query = calls[0][0][0]
+        assert "bedrooms >= ?" in count_query
+        assert "bedrooms <= ?" in count_query
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_applies_bathroom_filters(self, mock_db_conn, client):
+        """Should apply bathroom filters correctly"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (3,)
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/properties/search?property_type=rental&min_baths=1&max_baths=3")
+        assert response.status_code == 200
+
+        calls = mock_cursor.execute.call_args_list
+        count_query = calls[0][0][0]
+        assert "bathrooms >= ?" in count_query
+        assert "bathrooms <= ?" in count_query
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_applies_sqft_filters(self, mock_db_conn, client):
+        """Should apply square footage filters correctly"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (2,)
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/properties/search?property_type=forsale&min_sqft=1000&max_sqft=3000")
+        assert response.status_code == 200
+
+        calls = mock_cursor.execute.call_args_list
+        count_query = calls[0][0][0]
+        assert "livingArea >= ?" in count_query
+        assert "livingArea <= ?" in count_query
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_applies_city_filter(self, mock_db_conn, client):
+        """Should apply city filter correctly"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (10,)
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/properties/search?property_type=forsale&city=Nashville")
+        assert response.status_code == 200
+
+        calls = mock_cursor.execute.call_args_list
+        count_query = calls[0][0][0]
+        assert "LOWER(address) LIKE ?" in count_query
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_applies_zipcode_filter(self, mock_db_conn, client):
+        """Should apply ZIP code filter correctly"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (4,)
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/properties/search?property_type=forsale&zip_code=37201")
+        assert response.status_code == 200
+
+        calls = mock_cursor.execute.call_args_list
+        count_query = calls[0][0][0]
+        assert "address LIKE ?" in count_query
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_returns_properties_with_price_per_sqft(self, mock_db_conn, client):
+        """Should calculate pricePerSqft for properties with valid data"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (1,)
+        mock_cursor.fetchall.return_value = [
+            (123, "123 Main St", 300000, 3, 2, 1500, "SINGLE_FAMILY",
+             36.1, -86.8, "img.jpg", "/homedetails/123", 10, "FOR_SALE")
+        ]
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/properties/search?property_type=forsale")
+        data = response.get_json()
+
+        assert response.status_code == 200
+        assert len(data["properties"]) == 1
+        assert data["properties"][0]["pricePerSqft"] == 200.0
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_handles_zero_living_area(self, mock_db_conn, client):
+        """Should handle properties with zero living area gracefully"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (1,)
+        mock_cursor.fetchall.return_value = [
+            (123, "123 Main St", 300000, 3, 2, 0, "SINGLE_FAMILY",
+             36.1, -86.8, "img.jpg", "/homedetails/123", 10, "FOR_SALE")
+        ]
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/properties/search?property_type=forsale")
+        data = response.get_json()
+
+        assert response.status_code == 200
+        assert data["properties"][0]["pricePerSqft"] is None
+
+
+class TestExportFiltersComprehensive:
+    """Additional tests for export filter coverage"""
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_export_applies_all_filters(self, mock_db_conn, client):
+        """Should apply all filters to export"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("daysOnZillow",),
+            ("listingStatus",), ("detailUrl",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get(
+            "/api/properties/export?property_type=forsale"
+            "&min_price=100000&max_price=500000"
+            "&min_beds=2&max_beds=5"
+            "&min_baths=1&max_baths=3"
+            "&min_sqft=1000&max_sqft=3000"
+            "&city=Nashville&zip_code=37201"
+        )
+        assert response.status_code == 200
+
+        calls = mock_cursor.execute.call_args_list
+        query = calls[0][0][0]
+        assert "price >= ?" in query
+        assert "price <= ?" in query
+        assert "bedrooms >= ?" in query
+        assert "bedrooms <= ?" in query
+        assert "bathrooms >= ?" in query
+        assert "bathrooms <= ?" in query
+        assert "livingArea >= ?" in query
+        assert "livingArea <= ?" in query
+        assert "LOWER(address) LIKE ?" in query
+        assert "address LIKE ?" in query
+
+
+class TestFredMetricsFiltersComprehensive:
+    """Additional tests for FRED metrics filter coverage"""
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_fred_metrics_filters_by_series_id(self, mock_db_conn, client):
+        """Should filter by series_id"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [("date",), ("metric_name",), ("series_id",), ("value",)]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/metrics/fred?series_id=NASHTNSA")
+        assert response.status_code == 200
+
+        calls = mock_cursor.execute.call_args_list
+        query = calls[0][0][0]
+        assert "series_id = ?" in query
+
+
+class TestZillowUrlFixer:
+    """Tests for fix_zillow_url function"""
+
+    def test_fix_zillow_url_handles_none(self, client):
+        """Should handle None URL gracefully"""
+        from bna_market.web.api.routes import fix_zillow_url
+        assert fix_zillow_url(None) is None
+
+    def test_fix_zillow_url_handles_empty_string(self, client):
+        """Should handle empty string URL"""
+        from bna_market.web.api.routes import fix_zillow_url
+        assert fix_zillow_url("") is None
+
+    def test_fix_zillow_url_adds_domain_to_relative_path(self, client):
+        """Should add Zillow domain to relative URLs"""
+        from bna_market.web.api.routes import fix_zillow_url
+        result = fix_zillow_url("/homedetails/123")
+        assert result == "https://www.zillow.com/homedetails/123"
+
+    def test_fix_zillow_url_preserves_absolute_url(self, client):
+        """Should preserve absolute URLs"""
+        from bna_market.web.api.routes import fix_zillow_url
+        url = "https://www.zillow.com/homedetails/123"
+        assert fix_zillow_url(url) == url
+
+
+class TestErrorHandling:
+    """Tests for error handling in routes"""
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_handles_invalid_page_number(self, mock_db_conn, client):
+        """Should handle invalid page numbers gracefully"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (10,)
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        # Test negative page (should default to 1)
+        response = client.get("/api/properties/search?property_type=forsale&page=-1")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["pagination"]["page"] == 1
+
+    @patch("bna_market.web.api.routes.get_app_db_connection")
+    def test_search_limits_per_page_to_100(self, mock_db_conn, client):
+        """Should limit per_page to maximum of 100"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (200,)
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.description = [
+            ("zpid",), ("address",), ("price",), ("bedrooms",),
+            ("bathrooms",), ("livingArea",), ("propertyType",),
+            ("latitude",), ("longitude",), ("imgSrc",),
+            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db_conn.return_value.__enter__.return_value = mock_conn
+
+        response = client.get("/api/properties/search?property_type=forsale&per_page=500")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["pagination"]["perPage"] == 100

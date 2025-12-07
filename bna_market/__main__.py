@@ -7,6 +7,7 @@ Usage:
     python -m bna_market db migrate     # Run migrations
 """
 
+import os
 import sys
 import argparse
 from bna_market.services.etl_service import run_etl
@@ -35,7 +36,9 @@ def main():
     elif args.command == "web" and args.web_command == "serve":
         print("Starting web server...")
         app = create_app()
-        app.run(debug=True, host="0.0.0.0", port=5000)
+        # Use environment variable for debug mode instead of hardcoding
+        debug_mode = os.getenv("FLASK_DEBUG", "true").lower() in ("true", "1", "yes")
+        app.run(debug=debug_mode, host="0.0.0.0", port=5000)
     else:
         parser.print_help()
         sys.exit(1)

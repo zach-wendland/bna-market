@@ -1,17 +1,29 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, defineAsyncComponent } from 'vue';
 import { useDashboardStore } from '@/stores/dashboard';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import KPICards from '@/components/dashboard/KPICards.vue';
-import ChartSection from '@/components/dashboard/ChartSection.vue';
 import PropertyFilters from '@/components/properties/PropertyFilters.vue';
 import FilterChips from '@/components/properties/FilterChips.vue';
 import PropertyTable from '@/components/properties/PropertyTable.vue';
 import PropertyCards from '@/components/properties/PropertyCards.vue';
-import PropertyMap from '@/components/properties/PropertyMap.vue';
 import ViewToggle from '@/components/ui/ViewToggle.vue';
 import Pagination from '@/components/ui/Pagination.vue';
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
+
+// Lazy load heavy components to reduce initial bundle size
+// ApexCharts (~500KB) and Leaflet (~200KB) are loaded on demand
+const ChartSection = defineAsyncComponent({
+  loader: () => import('@/components/dashboard/ChartSection.vue'),
+  loadingComponent: LoadingSpinner,
+  delay: 200,
+});
+
+const PropertyMap = defineAsyncComponent({
+  loader: () => import('@/components/properties/PropertyMap.vue'),
+  loadingComponent: LoadingSpinner,
+  delay: 200,
+});
 
 const store = useDashboardStore();
 

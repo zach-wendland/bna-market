@@ -95,6 +95,9 @@ def sample_fred_df():
 def temp_db():
     """Temporary SQLite database for testing"""
     fd, db_path = tempfile.mkstemp(suffix=".db")
+    # Close the file descriptor immediately on Windows to avoid lock issues
+    os.close(fd)
+
     conn = sqlite3.connect(db_path)
 
     # Create test tables
@@ -141,8 +144,12 @@ def temp_db():
 
     yield db_path
 
-    os.close(fd)
-    os.unlink(db_path)
+    # Clean up - file descriptor already closed above
+    try:
+        os.unlink(db_path)
+    except PermissionError:
+        # On Windows, file might still be locked; ignore cleanup failure
+        pass
 
 
 @pytest.fixture

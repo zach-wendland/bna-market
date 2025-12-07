@@ -4,12 +4,23 @@ Flask application factory for BNA Market API
 The Vue SPA handles the frontend; this Flask app only serves the /api/* endpoints.
 """
 
+import os
 from flask import Flask
+from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from bna_market.utils.logger import setup_logger
 from bna_market.core.config import DATABASE_CONFIG
 
 logger = setup_logger("web_app")
+
+# Global limiter instance - configured per-app in create_app
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
 
 
 def create_app(config=None):
@@ -31,6 +42,16 @@ def create_app(config=None):
     if config:
         app.config.update(config)
 
+    # Enable CORS for the API endpoints
+    # In production, Vercel handles CORS; this is for local development
+    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    CORS(app, origins=cors_origins, supports_credentials=True)
+
+    # Initialize rate limiter
+    # Skip rate limiting in test mode
+    if not app.config.get("TESTING"):
+        limiter.init_app(app)
+
     # Register API blueprints
     from bna_market.web.api import api_bp
     app.register_blueprint(api_bp)
@@ -41,4 +62,5 @@ def create_app(config=None):
 # For backwards compatibility when running directly
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() in ("true", "1", "yes")
+    app.run(debug=debug_mode, host="0.0.0.0", port=5000)

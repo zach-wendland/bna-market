@@ -42,20 +42,36 @@ def get_db_connection(db_path: Optional[str] = None):
         conn.close()
 
 
+# Valid table names whitelist to prevent SQL injection
+VALID_TABLE_NAMES = frozenset([
+    "BNA_FORSALE",
+    "BNA_RENTALS",
+    "BNA_FRED_METRICS",
+])
+
+
 def read_table_safely(table_name: str, conn: sqlite3.Connection) -> pd.DataFrame:
     """
-    Read table with proper error handling
+    Read table with proper error handling and SQL injection protection
 
     Args:
-        table_name: Name of the table to read
+        table_name: Name of the table to read (must be in VALID_TABLE_NAMES)
         conn: Database connection
 
     Returns:
         DataFrame with table contents, or empty DataFrame if table doesn't exist
 
     Raises:
+        ValueError: If table_name is not in the allowed whitelist
         sqlite3.DatabaseError: For database errors other than missing table
     """
+    # Validate table name against whitelist to prevent SQL injection
+    if table_name not in VALID_TABLE_NAMES:
+        raise ValueError(
+            f"Invalid table name '{table_name}'. "
+            f"Must be one of: {', '.join(sorted(VALID_TABLE_NAMES))}"
+        )
+
     try:
         df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
         logger.debug(f"Read {len(df)} rows from {table_name}")

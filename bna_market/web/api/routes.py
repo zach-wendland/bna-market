@@ -7,15 +7,22 @@ Endpoints:
 - /api/metrics/fred - Get FRED economic metrics with optional filters
 """
 
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, current_app
 from io import StringIO
 import csv
 
 from bna_market.web.api import api_bp
+from bna_market.web.app import limiter
 from bna_market.utils.database import get_db_connection
 from bna_market.utils.logger import setup_logger
 
 logger = setup_logger("api")
+
+
+def get_app_db_connection():
+    """Get database connection using Flask app config for database path"""
+    db_path = current_app.config.get("DATABASE_PATH")
+    return get_db_connection(db_path)
 
 # Explicit table name mapping to prevent SQL injection
 PROPERTY_TYPE_TABLE_MAP = {
@@ -34,6 +41,7 @@ def fix_zillow_url(detail_url):
 
 
 @api_bp.route("/dashboard", methods=["GET"])
+@limiter.limit("30 per minute")
 def get_dashboard():
     """
     Get all dashboard data in one call for Vue frontend
@@ -42,7 +50,7 @@ def get_dashboard():
         JSON with propertyKPIs, fredKPIs, rentals, forsale, fredMetrics, lastUpdated
     """
     try:
-        with get_db_connection() as conn:
+        with get_app_db_connection() as conn:
             cursor = conn.cursor()
 
             # Get KPI aggregates from FULL database
@@ -140,7 +148,7 @@ def get_dashboard():
         try:
             mtime = os.path.getmtime(db_path)
             last_updated = datetime.fromtimestamp(mtime).isoformat() + "Z"
-        except:
+        except (OSError, FileNotFoundError, ValueError):
             last_updated = None
 
         return jsonify({
@@ -163,6 +171,7 @@ def get_dashboard():
 
 
 @api_bp.route("/properties/search", methods=["GET"])
+@limiter.limit("60 per minute")
 def search_properties():
     """
     Search properties with filters and pagination
@@ -248,7 +257,7 @@ def search_properties():
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
         # Execute queries with database connection
-        with get_db_connection() as conn:
+        with get_app_db_connection() as conn:
             cursor = conn.cursor()
 
             # Get total count
@@ -312,6 +321,7 @@ def search_properties():
 
 
 @api_bp.route("/properties/export", methods=["GET"])
+@limiter.limit("10 per minute")
 def export_properties():
     """
     Export filtered properties as CSV file
@@ -381,7 +391,7 @@ def export_properties():
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
         # Execute query
-        with get_db_connection() as conn:
+        with get_app_db_connection() as conn:
             cursor = conn.cursor()
 
             query = f"""
@@ -426,6 +436,7 @@ def export_properties():
 
 
 @api_bp.route("/metrics/fred", methods=["GET"])
+@limiter.limit("30 per minute")
 def get_fred_metrics():
     """
     Get FRED economic metrics with optional filters
@@ -465,7 +476,7 @@ def get_fred_metrics():
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
         # Execute query
-        with get_db_connection() as conn:
+        with get_app_db_connection() as conn:
             cursor = conn.cursor()
 
             query = f"""

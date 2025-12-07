@@ -29,13 +29,22 @@ class TestDatabase:
         assert len(result) == 0  # Empty table
 
     def test_read_table_safely_handles_missing_table(self, temp_db):
-        """Should return empty DataFrame for missing table"""
+        """Should return empty DataFrame for valid table name that doesn't exist in DB"""
         conn = sqlite3.connect(temp_db)
 
-        result = read_table_safely("NONEXISTENT_TABLE", conn)
+        # BNA_FORSALE is in the whitelist, but table may not exist in this temp db
+        result = read_table_safely("BNA_FORSALE", conn)
 
         assert result is not None
         assert len(result) == 0
+
+    def test_read_table_safely_rejects_invalid_table_name(self, temp_db):
+        """Should raise ValueError for table names not in whitelist"""
+        import pytest
+        conn = sqlite3.connect(temp_db)
+
+        with pytest.raises(ValueError, match="Invalid table name"):
+            read_table_safely("NONEXISTENT_TABLE", conn)
 
 
 class TestLogger:

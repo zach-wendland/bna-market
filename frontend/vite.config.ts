@@ -21,5 +21,22 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    // Optimize chunk splitting for code-splitting
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core Vue framework - always loaded
+          'vue-core': ['vue', 'pinia'],
+          // Heavy charting library - lazy loaded
+          'charts': ['apexcharts', 'vue3-apexcharts'],
+          // Map libraries - lazy loaded
+          'maps': ['leaflet', 'leaflet.markercluster'],
+          // UI libraries
+          'ui': ['@headlessui/vue', '@heroicons/vue'],
+        },
+      },
+    },
+    // Increase warning limit since we're code-splitting
+    chunkSizeWarningLimit: 300,
   },
 })

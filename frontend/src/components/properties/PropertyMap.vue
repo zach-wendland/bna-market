@@ -3,10 +3,21 @@ import { ref, onMounted, watch, onUnmounted } from 'vue';
 import { useDashboardStore } from '@/stores/dashboard';
 import { useFormatters } from '@/composables/useFormatters';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 const store = useDashboardStore();
 const { formatPrice, formatNumber } = useFormatters();
+
+// Sanitize text to prevent XSS attacks
+function escapeHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 
 const mapContainer = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
@@ -88,22 +99,26 @@ function updateMarkers() {
       fillOpacity: 0.8
     });
 
+    // Sanitize all user-controlled data to prevent XSS
+    const safeAddress = escapeHtml(property.address) || 'Unknown address';
+    const safeUrl = property.detailUrl ? escapeHtml(property.detailUrl) : null;
+
     const popupContent = `
       <div class="p-2 min-w-[200px]">
-        <p class="text-lg font-bold" style="color: ${color}">
+        <p class="text-lg font-bold" style="color: ${escapeHtml(color)}">
           ${formatPrice(property.price)}
         </p>
         <p class="text-sm text-gray-600 mt-1">
-          ${property.address || 'Unknown address'}
+          ${safeAddress}
         </p>
         <p class="text-sm text-gray-500 mt-2">
-          ${property.bedrooms || '?'} bed &bull;
-          ${property.bathrooms || '?'} bath &bull;
+          ${property.bedrooms ?? '?'} bed &bull;
+          ${property.bathrooms ?? '?'} bath &bull;
           ${formatNumber(property.livingArea)} sqft
         </p>
         ${property.pricePerSqft ? `<p class="text-sm text-gray-500">$${Math.round(property.pricePerSqft)}/sqft</p>` : ''}
-        ${property.detailUrl ? `
-          <a href="${property.detailUrl}" target="_blank" rel="noopener"
+        ${safeUrl ? `
+          <a href="${safeUrl}" target="_blank" rel="noopener noreferrer"
              class="inline-block mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium">
             View on Zillow →
           </a>

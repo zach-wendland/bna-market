@@ -1,29 +1,24 @@
 """
 Custom exception classes for BNA Market application
 
-Provides specific exception types for different error categories.
+DEPRECATED: Use bna_market.core.exceptions instead.
+This file is kept for backwards compatibility but all exceptions
+should be imported from bna_market.core.exceptions.
 """
 
+# Re-export from core.exceptions for backwards compatibility
+from bna_market.core.exceptions import (
+    BNAMarketError,
+    PipelineError,
+    APIError,
+    DataValidationError,
+    DatabaseError,
+)
 
-class PipelineError(Exception):
-    """Base exception for pipeline errors"""
-
-    pass
-
-
-class APIError(PipelineError):
-    """API request/response errors"""
-
-    pass
-
-
-class DataValidationError(PipelineError):
-    """Data quality/validation errors"""
-
-    pass
-
-
-class DatabaseError(PipelineError):
-    """Database operation errors"""
-
-    pass
+__all__ = [
+    "BNAMarketError",
+    "PipelineError",
+    "APIError",
+    "DataValidationError",
+    "DatabaseError",
+]

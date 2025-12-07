@@ -7,12 +7,12 @@ import { getExportUrl } from '@/api/client';
 const store = useDashboardStore();
 const showAdvanced = ref(false);
 
-// Debounced preview update
+// Debounced preview update with cancel support
 const debouncedPreview = useDebounceFn(() => {
   store.updateFilterPreview();
 }, 500);
 
-// Watch filter changes for preview
+// Watch filter changes for preview (excluding property type which triggers search)
 watch(
   () => store.filters,
   () => {
@@ -21,12 +21,26 @@ watch(
   { deep: true }
 );
 
+// Reset pagination when property type changes (prevents page overflow)
+watch(
+  () => store.filters.propertyType,
+  () => {
+    store.setPage(1);
+    // Reload with new property type
+    store.searchWithFilters();
+  }
+);
+
 async function handleSubmit() {
+  // Cancel any pending preview to avoid race conditions
+  debouncedPreview.cancel();
   store.setPage(1);
   await store.searchWithFilters();
 }
 
 function handleReset() {
+  // Cancel any pending preview to avoid stale data
+  debouncedPreview.cancel();
   store.clearAllFilters();
   store.searchWithFilters();
 }
