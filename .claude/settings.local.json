@@ -57,7 +57,9 @@
       "WebFetch(domain:bna-market.vercel.app)",
       "Bash(ping:*)",
       "WebFetch(domain:bna-market-zach-wendlands-projects.vercel.app)",
-      "WebFetch(domain:bna-market-git-main-zach-wendlands-projects.vercel.app)"
+      "WebFetch(domain:bna-market-git-main-zach-wendlands-projects.vercel.app)",
+      "Bash(npx vite-bundle-visualizer)",
+      "WebFetch(domain:bundlephobia.com)"
     ],
     "deny": [],
     "ask": []

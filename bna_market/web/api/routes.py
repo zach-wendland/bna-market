@@ -20,14 +20,14 @@ logger = setup_logger("api")
 
 
 def get_app_db_connection():
-    """Get database connection using Flask app config for database path"""
-    db_path = current_app.config.get("DATABASE_PATH")
-    return get_db_connection(db_path)
+    """Get database connection (Supabase PostgreSQL)"""
+    return get_db_connection()
 
-# Explicit table name mapping to prevent SQL injection
+
+# Explicit table name mapping to prevent SQL injection (lowercase for PostgreSQL)
 PROPERTY_TYPE_TABLE_MAP = {
-    "forsale": "BNA_FORSALE",
-    "rental": "BNA_RENTALS"
+    "forsale": "bna_forsale",
+    "rental": "bna_rentals"
 }
 
 
@@ -56,7 +56,7 @@ def get_dashboard():
             # Get KPI aggregates from FULL database
             cursor.execute("""
                 SELECT COUNT(*) as count, AVG(price) as avg_price
-                FROM BNA_RENTALS
+                FROM bna_rentals
                 WHERE price IS NOT NULL AND price > 0
             """)
             rental_stats = cursor.fetchone()
@@ -65,7 +65,7 @@ def get_dashboard():
 
             cursor.execute("""
                 SELECT COUNT(*) as count, AVG(price) as avg_price
-                FROM BNA_FORSALE
+                FROM bna_forsale
                 WHERE price IS NOT NULL AND price > 0
             """)
             forsale_stats = cursor.fetchone()
@@ -74,10 +74,10 @@ def get_dashboard():
 
             # Get rental properties (limited for display)
             cursor.execute("""
-                SELECT zpid, address, price, bedrooms, bathrooms, livingArea,
-                       propertyType, latitude, longitude, imgSrc, detailUrl,
-                       daysOnZillow, listingStatus
-                FROM BNA_RENTALS
+                SELECT zpid, address, price, bedrooms, bathrooms, "livingArea",
+                       "propertyType", latitude, longitude, "imgSrc", "detailUrl",
+                       "daysOnZillow", "listingStatus"
+                FROM bna_rentals
                 ORDER BY price DESC
                 LIMIT 100
             """)
@@ -94,10 +94,10 @@ def get_dashboard():
 
             # Get for-sale properties (limited for display)
             cursor.execute("""
-                SELECT zpid, address, price, bedrooms, bathrooms, livingArea,
-                       propertyType, latitude, longitude, imgSrc, detailUrl,
-                       daysOnZillow, listingStatus
-                FROM BNA_FORSALE
+                SELECT zpid, address, price, bedrooms, bathrooms, "livingArea",
+                       "propertyType", latitude, longitude, "imgSrc", "detailUrl",
+                       "daysOnZillow", "listingStatus"
+                FROM bna_forsale
                 ORDER BY price DESC
                 LIMIT 100
             """)
@@ -114,8 +114,8 @@ def get_dashboard():
 
             # Get FRED metrics
             cursor.execute("""
-                SELECT date, metric_name as metricName, series_id as seriesId, value
-                FROM BNA_FRED_METRICS
+                SELECT date, metric_name as "metricName", series_id as "seriesId", value
+                FROM bna_fred_metrics
                 ORDER BY date DESC
             """)
             columns = [desc[0] for desc in cursor.description]
@@ -140,16 +140,11 @@ def get_dashboard():
                 if db_name in latest_by_metric:
                     fred_kpis[kpi_name] = latest_by_metric[db_name].get('value')
 
-        import os
         from datetime import datetime
 
-        # Get database last modified time
-        db_path = os.environ.get("DATABASE_PATH", "BNASFR02.DB")
-        try:
-            mtime = os.path.getmtime(db_path)
-            last_updated = datetime.fromtimestamp(mtime).isoformat() + "Z"
-        except (OSError, FileNotFoundError, ValueError):
-            last_updated = None
+        # For Supabase, we don't have a local file timestamp
+        # Use current time as a placeholder or query for latest update
+        last_updated = datetime.utcnow().isoformat() + "Z"
 
         return jsonify({
             "propertyKPIs": {
@@ -208,50 +203,50 @@ def search_properties():
         per_page = min(100, max(1, int(request.args.get("per_page", 20))))
         offset = (page - 1) * per_page
 
-        # Build WHERE clause with filters
+        # Build WHERE clause with filters (PostgreSQL uses %s placeholders)
         conditions = []
         params = []
 
         # Price filters
         if request.args.get("min_price"):
-            conditions.append("price >= ?")
+            conditions.append("price >= %s")
             params.append(float(request.args.get("min_price")))
         if request.args.get("max_price"):
-            conditions.append("price <= ?")
+            conditions.append("price <= %s")
             params.append(float(request.args.get("max_price")))
 
         # Bedroom filters
         if request.args.get("min_beds"):
-            conditions.append("bedrooms >= ?")
+            conditions.append("bedrooms >= %s")
             params.append(int(request.args.get("min_beds")))
         if request.args.get("max_beds"):
-            conditions.append("bedrooms <= ?")
+            conditions.append("bedrooms <= %s")
             params.append(int(request.args.get("max_beds")))
 
         # Bathroom filters
         if request.args.get("min_baths"):
-            conditions.append("bathrooms >= ?")
+            conditions.append("bathrooms >= %s")
             params.append(float(request.args.get("min_baths")))
         if request.args.get("max_baths"):
-            conditions.append("bathrooms <= ?")
+            conditions.append("bathrooms <= %s")
             params.append(float(request.args.get("max_baths")))
 
         # Square footage filters
         if request.args.get("min_sqft"):
-            conditions.append("livingArea >= ?")
+            conditions.append('"livingArea" >= %s')
             params.append(int(request.args.get("min_sqft")))
         if request.args.get("max_sqft"):
-            conditions.append("livingArea <= ?")
+            conditions.append('"livingArea" <= %s')
             params.append(int(request.args.get("max_sqft")))
 
         # City filter (partial match, case-insensitive)
         if request.args.get("city"):
-            conditions.append("LOWER(address) LIKE ?")
+            conditions.append("LOWER(address) LIKE %s")
             params.append(f'%{request.args.get("city").lower()}%')
 
         # ZIP code filter (exact match)
         if request.args.get("zip_code"):
-            conditions.append("address LIKE ?")
+            conditions.append("address LIKE %s")
             params.append(f'%{request.args.get("zip_code")}%')
 
         where_clause = " AND ".join(conditions) if conditions else "1=1"
@@ -267,13 +262,13 @@ def search_properties():
 
             # Get paginated results
             data_query = f"""
-                SELECT zpid, address, price, bedrooms, bathrooms, livingArea,
-                       propertyType, latitude, longitude, imgSrc, detailUrl,
-                       daysOnZillow, listingStatus
+                SELECT zpid, address, price, bedrooms, bathrooms, "livingArea",
+                       "propertyType", latitude, longitude, "imgSrc", "detailUrl",
+                       "daysOnZillow", "listingStatus"
                 FROM {table_name}
                 WHERE {where_clause}
                 ORDER BY price DESC
-                LIMIT ? OFFSET ?
+                LIMIT %s OFFSET %s
             """
             cursor.execute(data_query, params + [per_page, offset])
 
@@ -342,50 +337,50 @@ def export_properties():
         # Get table name from secure mapping
         table_name = PROPERTY_TYPE_TABLE_MAP[property_type]
 
-        # Build WHERE clause with same filters as search
+        # Build WHERE clause with same filters as search (PostgreSQL %s placeholders)
         conditions = []
         params = []
 
         # Price filters
         if request.args.get("min_price"):
-            conditions.append("price >= ?")
+            conditions.append("price >= %s")
             params.append(float(request.args.get("min_price")))
         if request.args.get("max_price"):
-            conditions.append("price <= ?")
+            conditions.append("price <= %s")
             params.append(float(request.args.get("max_price")))
 
         # Bedroom filters
         if request.args.get("min_beds"):
-            conditions.append("bedrooms >= ?")
+            conditions.append("bedrooms >= %s")
             params.append(int(request.args.get("min_beds")))
         if request.args.get("max_beds"):
-            conditions.append("bedrooms <= ?")
+            conditions.append("bedrooms <= %s")
             params.append(int(request.args.get("max_beds")))
 
         # Bathroom filters
         if request.args.get("min_baths"):
-            conditions.append("bathrooms >= ?")
+            conditions.append("bathrooms >= %s")
             params.append(float(request.args.get("min_baths")))
         if request.args.get("max_baths"):
-            conditions.append("bathrooms <= ?")
+            conditions.append("bathrooms <= %s")
             params.append(float(request.args.get("max_baths")))
 
         # Square footage filters
         if request.args.get("min_sqft"):
-            conditions.append("livingArea >= ?")
+            conditions.append('"livingArea" >= %s')
             params.append(int(request.args.get("min_sqft")))
         if request.args.get("max_sqft"):
-            conditions.append("livingArea <= ?")
+            conditions.append('"livingArea" <= %s')
             params.append(int(request.args.get("max_sqft")))
 
         # City filter
         if request.args.get("city"):
-            conditions.append("LOWER(address) LIKE ?")
+            conditions.append("LOWER(address) LIKE %s")
             params.append(f'%{request.args.get("city").lower()}%')
 
         # ZIP code filter
         if request.args.get("zip_code"):
-            conditions.append("address LIKE ?")
+            conditions.append("address LIKE %s")
             params.append(f'%{request.args.get("zip_code")}%')
 
         where_clause = " AND ".join(conditions) if conditions else "1=1"
@@ -395,9 +390,9 @@ def export_properties():
             cursor = conn.cursor()
 
             query = f"""
-                SELECT zpid, address, price, bedrooms, bathrooms, livingArea,
-                       propertyType, latitude, longitude, daysOnZillow,
-                       listingStatus, detailUrl
+                SELECT zpid, address, price, bedrooms, bathrooms, "livingArea",
+                       "propertyType", latitude, longitude, "daysOnZillow",
+                       "listingStatus", "detailUrl"
                 FROM {table_name}
                 WHERE {where_clause}
                 ORDER BY price DESC
@@ -451,26 +446,26 @@ def get_fred_metrics():
         JSON response with metrics array and count
     """
     try:
-        # Build WHERE clause with filters
+        # Build WHERE clause with filters (PostgreSQL %s placeholders)
         conditions = []
         params = []
 
         # Metric name filter
         if request.args.get("metric_name"):
-            conditions.append("metric_name = ?")
+            conditions.append("metric_name = %s")
             params.append(request.args.get("metric_name"))
 
         # Series ID filter
         if request.args.get("series_id"):
-            conditions.append("series_id = ?")
+            conditions.append("series_id = %s")
             params.append(request.args.get("series_id"))
 
         # Date range filters
         if request.args.get("start_date"):
-            conditions.append("date >= ?")
+            conditions.append("date >= %s")
             params.append(request.args.get("start_date"))
         if request.args.get("end_date"):
-            conditions.append("date <= ?")
+            conditions.append("date <= %s")
             params.append(request.args.get("end_date"))
 
         where_clause = " AND ".join(conditions) if conditions else "1=1"
@@ -481,7 +476,7 @@ def get_fred_metrics():
 
             query = f"""
                 SELECT date, metric_name, series_id, value
-                FROM BNA_FRED_METRICS
+                FROM bna_fred_metrics
                 WHERE {where_clause}
                 ORDER BY date DESC, metric_name
             """
@@ -491,7 +486,11 @@ def get_fred_metrics():
             columns = [desc[0] for desc in cursor.description]
             metrics = []
             for row in cursor.fetchall():
-                metrics.append(dict(zip(columns, row)))
+                metric = dict(zip(columns, row))
+                # Convert date to string if it's a date object
+                if metric.get('date') and hasattr(metric['date'], 'isoformat'):
+                    metric['date'] = metric['date'].isoformat()
+                metrics.append(metric)
 
         logger.info(f"FRED metrics query executed, found {len(metrics)} records")
 
@@ -514,6 +513,7 @@ def health_check():
         {
             "status": "healthy",
             "api_version": "1.0",
+            "database": "supabase",
             "endpoints": [
                 "/api/dashboard",
                 "/api/properties/search",

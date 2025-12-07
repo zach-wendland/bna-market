@@ -1,10 +1,11 @@
 """
 ETL orchestration service for BNA Market
 
-Coordinates data pipeline execution and database updates with deduplication logic.
+Coordinates data pipeline execution and database updates with Supabase upserts.
 """
 
 import json
+from datetime import datetime
 
 import pandas as pd
 
@@ -12,9 +13,9 @@ from bna_market.pipelines.for_sale import fetch_for_sale_properties
 from bna_market.pipelines.rental import fetch_rental_properties
 from bna_market.pipelines.fred_metrics import fetch_fred_metrics
 from bna_market.utils.logger import setup_logger
-from bna_market.utils.database import get_db_connection, read_table_safely
+from bna_market.utils.database import upsert_dataframe, read_table_safely
 from bna_market.utils.env_validator import validate_environment
-from bna_market.core.config import settings, DATABASE_CONFIG
+from bna_market.core.config import DATABASE_CONFIG
 
 logger = setup_logger("etl_service")
 
@@ -23,11 +24,7 @@ class ETLService:
     """
     Orchestrates ETL pipeline execution and database updates
 
-    Handles fetching data from external APIs, merging with existing database records,
-    deduplication, and table updates.
-
-    Attributes:
-        db_path: Path to SQLite database file
+    Handles fetching data from external APIs, deduplication, and Supabase upserts.
 
     Example:
         >>> service = ETLService()
@@ -35,25 +32,47 @@ class ETLService:
         >>> print(f"Updated {results['for_sale']} for-sale properties")
     """
 
-    def __init__(self, db_path: str | None = None):
+    def __init__(self):
+        """Initialize ETL service"""
+        self.logger = setup_logger("etl_service")
+
+    def _prepare_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Initialize ETL service
+        Prepare DataFrame for Supabase insertion
+
+        Converts complex types to JSON strings and handles NaN values.
 
         Args:
-            db_path: Optional custom database path (defaults to settings database_path)
+            df: Input DataFrame
+
+        Returns:
+            Cleaned DataFrame ready for insertion
         """
-        self.db_path = db_path or DATABASE_CONFIG["path"]
-        self.logger = setup_logger("etl_service")
+        if df.empty:
+            return df
+
+        # Make a copy to avoid modifying original
+        df = df.copy()
+
+        # Convert dict/list columns to JSON strings
+        for col in df.columns:
+            df[col] = df[col].apply(
+                lambda x: json.dumps(x) if isinstance(x, (dict, list)) else x
+            )
+
+        # Replace NaN with None for PostgreSQL compatibility
+        df = df.where(pd.notnull(df), None)
+
+        return df
 
     def update_sales_table(self) -> int:
         """
-        Update BNA_FORSALE table with latest Zillow for-sale properties
+        Update bna_forsale table with latest Zillow for-sale properties
 
-        Fetches new data from Zillow API, merges with existing database records,
-        deduplicates on zpid, and replaces table contents.
+        Fetches new data from Zillow API and upserts to Supabase.
 
         Returns:
-            Number of records in updated table (0 if update skipped)
+            Number of records upserted (0 if update skipped)
 
         Example:
             >>> service = ETLService()
@@ -66,35 +85,30 @@ class ETLService:
 
         # Skip if no data was fetched
         if df.empty:
-            self.logger.warning("Skipping BNA_FORSALE table update - no data available")
+            self.logger.warning("Skipping bna_forsale table update - no data available")
             return 0
 
-        with get_db_connection(self.db_path) as conn:
-            # Read existing data
-            existing_df = read_table_safely("BNA_FORSALE", conn)
+        # Prepare data for insertion
+        df = self._prepare_dataframe(df)
 
-            # Merge new data with existing, keeping only new rows based on zpid
-            if not existing_df.empty and "zpid" in df.columns and "zpid" in existing_df.columns:
-                df = pd.concat([existing_df, df]).drop_duplicates(subset=["zpid"], keep="last")
-                self.logger.info(f"Merged with {len(existing_df)} existing records")
+        # Upsert to Supabase
+        count = upsert_dataframe(
+            df,
+            table_name="bna_forsale",
+            unique_columns=DATABASE_CONFIG["unique_keys"]["for_sale"]
+        )
 
-            # Convert dict/list to JSON strings for SQLite
-            df = df.map(lambda x: json.dumps(x) if isinstance(x, (dict, list)) else x)
-
-            df.to_sql(name="BNA_FORSALE", con=conn, if_exists="replace", index=False)
-            self.logger.info(f"Updated BNA_FORSALE: {len(df)} total records")
-
-            return len(df)
+        self.logger.info(f"Updated bna_forsale: {count} records upserted")
+        return count
 
     def update_rentals_table(self) -> int:
         """
-        Update BNA_RENTALS table with latest Zillow rental properties
+        Update bna_rentals table with latest Zillow rental properties
 
-        Fetches new data from Zillow API, merges with existing database records,
-        deduplicates on zpid, and replaces table contents.
+        Fetches new data from Zillow API and upserts to Supabase.
 
         Returns:
-            Number of records in updated table (0 if update skipped)
+            Number of records upserted (0 if update skipped)
 
         Example:
             >>> service = ETLService()
@@ -107,35 +121,30 @@ class ETLService:
 
         # Skip if no data was fetched
         if df.empty:
-            self.logger.warning("Skipping BNA_RENTALS table update - no data available")
+            self.logger.warning("Skipping bna_rentals table update - no data available")
             return 0
 
-        with get_db_connection(self.db_path) as conn:
-            # Read existing data
-            existing_df = read_table_safely("BNA_RENTALS", conn)
+        # Prepare data for insertion
+        df = self._prepare_dataframe(df)
 
-            # Merge new data with existing, keeping only new rows based on zpid
-            if not existing_df.empty and "zpid" in df.columns and "zpid" in existing_df.columns:
-                df = pd.concat([existing_df, df]).drop_duplicates(subset=["zpid"], keep="last")
-                self.logger.info(f"Merged with {len(existing_df)} existing records")
+        # Upsert to Supabase
+        count = upsert_dataframe(
+            df,
+            table_name="bna_rentals",
+            unique_columns=DATABASE_CONFIG["unique_keys"]["rentals"]
+        )
 
-            # Convert dict/list to JSON strings for SQLite
-            df = df.map(lambda x: json.dumps(x) if isinstance(x, (dict, list)) else x)
-
-            df.to_sql(name="BNA_RENTALS", con=conn, if_exists="replace", index=False)
-            self.logger.info(f"Updated BNA_RENTALS: {len(df)} total records")
-
-            return len(df)
+        self.logger.info(f"Updated bna_rentals: {count} records upserted")
+        return count
 
     def update_fred_metrics_table(self) -> int:
         """
-        Update BNA_FRED_METRICS table with latest FRED economic indicators
+        Update bna_fred_metrics table with latest FRED economic indicators
 
-        Fetches new data from FRED API, merges with existing database records,
-        deduplicates on date + series_id, and replaces table contents.
+        Fetches new data from FRED API and upserts to Supabase.
 
         Returns:
-            Number of records in updated table (0 if update skipped)
+            Number of records upserted (0 if update skipped)
 
         Example:
             >>> service = ETLService()
@@ -148,24 +157,25 @@ class ETLService:
 
         # Skip if no data was fetched
         if df.empty:
-            self.logger.warning("Skipping BNA_FRED_METRICS table update - no data available")
+            self.logger.warning("Skipping bna_fred_metrics table update - no data available")
             return 0
 
-        with get_db_connection(self.db_path) as conn:
-            # Read existing data
-            existing_df = read_table_safely("BNA_FRED_METRICS", conn)
+        # Convert date column to string format for PostgreSQL DATE type
+        if "date" in df.columns:
+            df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
 
-            # Merge and deduplicate based on date + series_id
-            if not existing_df.empty:
-                df = pd.concat([existing_df, df]).drop_duplicates(
-                    subset=["date", "series_id"], keep="last"
-                )
-                self.logger.info(f"Merged with {len(existing_df)} existing records")
+        # Prepare data for insertion
+        df = self._prepare_dataframe(df)
 
-            df.to_sql(name="BNA_FRED_METRICS", con=conn, if_exists="replace", index=False)
-            self.logger.info(f"Updated BNA_FRED_METRICS: {len(df)} total records")
+        # Upsert to Supabase
+        count = upsert_dataframe(
+            df,
+            table_name="bna_fred_metrics",
+            unique_columns=DATABASE_CONFIG["unique_keys"]["fred_metrics"]
+        )
 
-            return len(df)
+        self.logger.info(f"Updated bna_fred_metrics: {count} records upserted")
+        return count
 
     def run_full_refresh(self) -> dict[str, int]:
         """

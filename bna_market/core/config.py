@@ -33,8 +33,10 @@ settings = {
     "rapid_api_key": os.getenv("RAPID_API_KEY", ""),
     "fred_api_key": os.getenv("FRED_API_KEY", ""),
 
-    # Database
-    "database_path": os.getenv("DATABASE_PATH", "BNASFR02.DB"),
+    # Supabase configuration (required for database operations)
+    "supabase_url": os.getenv("SUPABASE_URL", ""),
+    "supabase_anon_key": os.getenv("SUPABASE_ANON_KEY", ""),
+    "supabase_service_key": os.getenv("SUPABASE_SERVICE_KEY", ""),
 }
 
 
@@ -94,20 +96,20 @@ FRED_CONFIG = {
 }
 
 
-# Resolve database path to absolute
-_db_path_raw = settings["database_path"]
-_db_path = Path(_db_path_raw)
-if not _db_path.is_absolute():
-    _db_path = BASE_DIR / _db_path_raw
+# Supabase configuration
+SUPABASE_CONFIG = {
+    "url": settings["supabase_url"],
+    "anon_key": settings["supabase_anon_key"],
+    "service_key": settings["supabase_service_key"],
+}
 
-# Database configuration
+
+# Database configuration (table names use lowercase for PostgreSQL)
 DATABASE_CONFIG = {
-    # Resolve to an absolute path to avoid deployment issues with relative CWDs
-    "path": str(_db_path),
     "tables": {
-        "for_sale": "BNA_FORSALE",
-        "rentals": "BNA_RENTALS",
-        "fred_metrics": "BNA_FRED_METRICS",
+        "for_sale": "bna_forsale",
+        "rentals": "bna_rentals",
+        "fred_metrics": "bna_fred_metrics",
     },
     "unique_keys": {
         "for_sale": ["zpid"],

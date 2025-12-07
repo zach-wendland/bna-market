@@ -2,6 +2,7 @@
 Flask application factory for BNA Market API
 
 The Vue SPA handles the frontend; this Flask app only serves the /api/* endpoints.
+Database operations use Supabase PostgreSQL.
 """
 
 import os
@@ -11,7 +12,6 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 from bna_market.utils.logger import setup_logger
-from bna_market.core.config import DATABASE_CONFIG
 
 logger = setup_logger("web_app")
 
@@ -34,9 +34,6 @@ def create_app(config=None):
         Configured Flask application
     """
     app = Flask(__name__)
-
-    # Default configuration from settings
-    app.config["DATABASE_PATH"] = DATABASE_CONFIG["path"]
 
     # Override with custom config if provided
     if config:

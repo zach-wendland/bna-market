@@ -163,10 +163,10 @@ class TestPropertiesSearchEndpoint:
         calls = mock_cursor.execute.call_args_list
         assert len(calls) >= 2  # Count query + data query
 
-        # Verify price conditions in SQL
+        # Verify price conditions in SQL (PostgreSQL uses %s placeholders)
         count_query = calls[0][0][0]
-        assert "price >= ?" in count_query
-        assert "price <= ?" in count_query
+        assert "price >= %s" in count_query
+        assert "price <= %s" in count_query
 
 
 class TestPropertiesExportEndpoint:
@@ -272,9 +272,9 @@ class TestFredMetricsEndpoint:
         # Verify filters were applied
         calls = mock_cursor.execute.call_args_list
         query = calls[0][0][0]
-        assert "metric_name = ?" in query
-        assert "date >= ?" in query
-        assert "date <= ?" in query
+        assert "metric_name = %s" in query
+        assert "date >= %s" in query
+        assert "date <= %s" in query
 
 
 class TestTableNameSecurityMapping:
@@ -294,10 +294,10 @@ class TestTableNameSecurityMapping:
 
         response = client.get("/api/properties/search?property_type=forsale")
 
-        # Verify BNA_FORSALE table was used
+        # Verify bna_forsale table was used (lowercase for PostgreSQL)
         calls = mock_cursor.execute.call_args_list
         count_query = calls[0][0][0]
-        assert "BNA_FORSALE" in count_query
+        assert "bna_forsale" in count_query
 
     @patch("bna_market.web.api.routes.get_db_connection")
     def test_search_uses_mapping_for_rental(self, mock_db_conn, client):
@@ -313,10 +313,10 @@ class TestTableNameSecurityMapping:
 
         response = client.get("/api/properties/search?property_type=rental")
 
-        # Verify BNA_RENTALS table was used
+        # Verify bna_rentals table was used (lowercase for PostgreSQL)
         calls = mock_cursor.execute.call_args_list
         count_query = calls[0][0][0]
-        assert "BNA_RENTALS" in count_query
+        assert "bna_rentals" in count_query
 
     @patch("bna_market.web.api.routes.get_db_connection")
     def test_search_rejects_sql_injection_attempt(self, mock_db, client):
@@ -351,8 +351,8 @@ class TestSearchFiltersComprehensive:
 
         calls = mock_cursor.execute.call_args_list
         count_query = calls[0][0][0]
-        assert "bedrooms >= ?" in count_query
-        assert "bedrooms <= ?" in count_query
+        assert "bedrooms >= %s" in count_query
+        assert "bedrooms <= %s" in count_query
 
     @patch("bna_market.web.api.routes.get_app_db_connection")
     def test_search_applies_bathroom_filters(self, mock_db_conn, client):
@@ -375,8 +375,8 @@ class TestSearchFiltersComprehensive:
 
         calls = mock_cursor.execute.call_args_list
         count_query = calls[0][0][0]
-        assert "bathrooms >= ?" in count_query
-        assert "bathrooms <= ?" in count_query
+        assert "bathrooms >= %s" in count_query
+        assert "bathrooms <= %s" in count_query
 
     @patch("bna_market.web.api.routes.get_app_db_connection")
     def test_search_applies_sqft_filters(self, mock_db_conn, client):
@@ -399,8 +399,8 @@ class TestSearchFiltersComprehensive:
 
         calls = mock_cursor.execute.call_args_list
         count_query = calls[0][0][0]
-        assert "livingArea >= ?" in count_query
-        assert "livingArea <= ?" in count_query
+        assert '"livingArea" >= %s' in count_query
+        assert '"livingArea" <= %s' in count_query
 
     @patch("bna_market.web.api.routes.get_app_db_connection")
     def test_search_applies_city_filter(self, mock_db_conn, client):
@@ -423,7 +423,7 @@ class TestSearchFiltersComprehensive:
 
         calls = mock_cursor.execute.call_args_list
         count_query = calls[0][0][0]
-        assert "LOWER(address) LIKE ?" in count_query
+        assert "LOWER(address) LIKE %s" in count_query
 
     @patch("bna_market.web.api.routes.get_app_db_connection")
     def test_search_applies_zipcode_filter(self, mock_db_conn, client):
@@ -446,7 +446,7 @@ class TestSearchFiltersComprehensive:
 
         calls = mock_cursor.execute.call_args_list
         count_query = calls[0][0][0]
-        assert "address LIKE ?" in count_query
+        assert "address LIKE %s" in count_query
 
     @patch("bna_market.web.api.routes.get_app_db_connection")
     def test_search_returns_properties_with_price_per_sqft(self, mock_db_conn, client):
@@ -530,16 +530,16 @@ class TestExportFiltersComprehensive:
 
         calls = mock_cursor.execute.call_args_list
         query = calls[0][0][0]
-        assert "price >= ?" in query
-        assert "price <= ?" in query
-        assert "bedrooms >= ?" in query
-        assert "bedrooms <= ?" in query
-        assert "bathrooms >= ?" in query
-        assert "bathrooms <= ?" in query
-        assert "livingArea >= ?" in query
-        assert "livingArea <= ?" in query
-        assert "LOWER(address) LIKE ?" in query
-        assert "address LIKE ?" in query
+        assert "price >= %s" in query
+        assert "price <= %s" in query
+        assert "bedrooms >= %s" in query
+        assert "bedrooms <= %s" in query
+        assert "bathrooms >= %s" in query
+        assert "bathrooms <= %s" in query
+        assert '"livingArea" >= %s' in query
+        assert '"livingArea" <= %s' in query
+        assert "LOWER(address) LIKE %s" in query
+        assert "address LIKE %s" in query
 
 
 class TestFredMetricsFiltersComprehensive:
@@ -560,7 +560,7 @@ class TestFredMetricsFiltersComprehensive:
 
         calls = mock_cursor.execute.call_args_list
         query = calls[0][0][0]
-        assert "series_id = ?" in query
+        assert "series_id = %s" in query
 
 
 class TestZillowUrlFixer:

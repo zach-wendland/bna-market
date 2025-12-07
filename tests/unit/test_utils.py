@@ -1,8 +1,11 @@
 """Unit tests for utility modules"""
 
 import pytest
-import sqlite3
-from bna_market.utils.database import get_db_connection, read_table_safely
+import pandas as pd
+from unittest.mock import patch, MagicMock
+from contextlib import contextmanager
+
+from bna_market.utils.database import read_table_safely, VALID_TABLE_NAMES
 from bna_market.utils.logger import setup_logger
 from bna_market.utils.validators import validate_zillow_property, validate_zillow_dataframe
 from bna_market.utils.retry import retry_with_backoff
@@ -12,39 +15,46 @@ from bna_market.utils.env_validator import validate_environment
 class TestDatabase:
     """Tests for database utilities"""
 
-    def test_get_db_connection_returns_connection(self, temp_db, monkeypatch):
-        """Should return SQLite connection"""
-        monkeypatch.setattr("bna_market.utils.database.DATABASE_CONFIG", {"path": temp_db})
-
-        with get_db_connection() as conn:
-            assert isinstance(conn, sqlite3.Connection)
-
-    def test_read_table_safely_returns_dataframe(self, temp_db):
+    def test_read_table_safely_returns_dataframe(self):
         """Should return DataFrame for existing table"""
-        conn = sqlite3.connect(temp_db)
+        # Mock the connection to return empty DataFrame
+        mock_conn = MagicMock()
 
-        result = read_table_safely("BNA_FORSALE", conn)
+        with patch("bna_market.utils.database.pd.read_sql") as mock_read_sql:
+            mock_read_sql.return_value = pd.DataFrame({"zpid": [], "price": []})
 
-        assert result is not None
-        assert len(result) == 0  # Empty table
+            result = read_table_safely("bna_forsale", mock_conn)
 
-    def test_read_table_safely_handles_missing_table(self, temp_db):
-        """Should return empty DataFrame for valid table name that doesn't exist in DB"""
-        conn = sqlite3.connect(temp_db)
+            assert result is not None
+            assert isinstance(result, pd.DataFrame)
+            mock_read_sql.assert_called_once()
 
-        # BNA_FORSALE is in the whitelist, but table may not exist in this temp db
-        result = read_table_safely("BNA_FORSALE", conn)
+    def test_read_table_safely_normalizes_table_name(self):
+        """Should normalize table names to lowercase"""
+        mock_conn = MagicMock()
 
-        assert result is not None
-        assert len(result) == 0
+        with patch("bna_market.utils.database.pd.read_sql") as mock_read_sql:
+            mock_read_sql.return_value = pd.DataFrame()
 
-    def test_read_table_safely_rejects_invalid_table_name(self, temp_db):
+            # Pass uppercase table name - should be normalized
+            result = read_table_safely("BNA_FORSALE", mock_conn)
+
+            # Check that the query uses lowercase
+            call_args = mock_read_sql.call_args
+            assert "bna_forsale" in call_args[0][0]
+
+    def test_read_table_safely_rejects_invalid_table_name(self):
         """Should raise ValueError for table names not in whitelist"""
-        import pytest
-        conn = sqlite3.connect(temp_db)
+        mock_conn = MagicMock()
 
         with pytest.raises(ValueError, match="Invalid table name"):
-            read_table_safely("NONEXISTENT_TABLE", conn)
+            read_table_safely("NONEXISTENT_TABLE", mock_conn)
+
+    def test_valid_table_names_whitelist(self):
+        """Should have correct valid table names"""
+        assert "bna_forsale" in VALID_TABLE_NAMES
+        assert "bna_rentals" in VALID_TABLE_NAMES
+        assert "bna_fred_metrics" in VALID_TABLE_NAMES
 
 
 class TestLogger:
@@ -78,8 +88,6 @@ class TestValidators:
 
     def test_validate_dataframe_returns_dataframe(self):
         """Should return DataFrame after validation"""
-        import pandas as pd
-
         df = pd.DataFrame(
             {"zpid": [12345], "price": [350000], "address": ["123 Main St"]}
         )
@@ -134,12 +142,14 @@ class TestRetry:
 class TestEnvValidator:
     """Tests for environment validator"""
 
-    def test_validate_environment_passes_with_keys(self, monkeypatch):
+    def test_validate_environment_passes_with_all_keys(self, monkeypatch):
         """Should pass when all required keys present"""
         monkeypatch.setenv("RAPID_API_KEY", "test_key")
         monkeypatch.setenv("FRED_API_KEY", "test_key")
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test_service_key")
 
-        result = validate_environment()
+        result = validate_environment(reload_dotenv=False)
 
         assert result is True
 
@@ -147,6 +157,8 @@ class TestEnvValidator:
         """Should fail when keys missing"""
         monkeypatch.delenv("RAPID_API_KEY", raising=False)
         monkeypatch.delenv("FRED_API_KEY", raising=False)
+        monkeypatch.delenv("SUPABASE_URL", raising=False)
+        monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
 
         # Pass reload_dotenv=False to prevent re-reading .env file
         result = validate_environment(reload_dotenv=False)

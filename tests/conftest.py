@@ -1,11 +1,9 @@
-"""Pytest configuration and shared fixtures"""
+"""Pytest configuration and shared fixtures for Supabase-based tests"""
 
 import pytest
 import pandas as pd
-import sqlite3
-import tempfile
-import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from contextlib import contextmanager
 
 
 @pytest.fixture
@@ -91,65 +89,86 @@ def sample_fred_df():
     )
 
 
-@pytest.fixture
-def temp_db():
-    """Temporary SQLite database for testing"""
-    fd, db_path = tempfile.mkstemp(suffix=".db")
-    # Close the file descriptor immediately on Windows to avoid lock issues
-    os.close(fd)
+class MockCursor:
+    """Mock database cursor that mimics psycopg2 cursor behavior"""
 
-    conn = sqlite3.connect(db_path)
+    def __init__(self, data=None):
+        self._data = data or []
+        self._description = []
+        self._index = 0
 
-    # Create test tables
-    conn.execute(
-        """
-        CREATE TABLE BNA_FORSALE (
-            zpid INTEGER PRIMARY KEY,
-            price REAL,
-            address TEXT,
-            bedrooms INTEGER,
-            bathrooms REAL,
-            livingArea INTEGER
-        )
-    """
-    )
+    def execute(self, query, params=None):
+        """Mock execute - doesn't do anything but stores the query"""
+        self._query = query
+        self._params = params
 
-    conn.execute(
-        """
-        CREATE TABLE BNA_RENTALS (
-            zpid INTEGER PRIMARY KEY,
-            price REAL,
-            address TEXT,
-            bedrooms INTEGER,
-            bathrooms REAL,
-            livingArea INTEGER
-        )
-    """
-    )
+    def fetchone(self):
+        """Return first row or None"""
+        if self._data:
+            return self._data[0]
+        return None
 
-    conn.execute(
-        """
-        CREATE TABLE BNA_FRED_METRICS (
-            date TEXT,
-            metric_name TEXT,
-            series_id TEXT,
-            value REAL,
-            PRIMARY KEY (date, series_id)
-        )
-    """
-    )
+    def fetchall(self):
+        """Return all rows"""
+        return self._data
 
-    conn.commit()
-    conn.close()
+    @property
+    def description(self):
+        """Return column descriptions"""
+        return self._description
 
-    yield db_path
 
-    # Clean up - file descriptor already closed above
-    try:
-        os.unlink(db_path)
-    except PermissionError:
-        # On Windows, file might still be locked; ignore cleanup failure
+class MockConnection:
+    """Mock database connection that mimics psycopg2 connection"""
+
+    def __init__(self, cursor_data=None, columns=None):
+        self._cursor = MockCursor(cursor_data)
+        if columns:
+            self._cursor._description = [(col,) for col in columns]
+
+    def cursor(self):
+        return self._cursor
+
+    def commit(self):
         pass
+
+    def rollback(self):
+        pass
+
+    def close(self):
+        pass
+
+
+@pytest.fixture
+def mock_db_connection():
+    """
+    Mock database connection fixture for API route testing.
+
+    Returns a context manager that yields a MockConnection.
+    Configure the mock data by setting mock_db_connection.data and mock_db_connection.columns
+    """
+    @contextmanager
+    def _mock_connection(data=None, columns=None):
+        yield MockConnection(data, columns)
+
+    return _mock_connection
+
+
+@pytest.fixture
+def mock_supabase_client():
+    """Mock Supabase client for ETL testing"""
+    mock = MagicMock()
+
+    # Mock the table().upsert().execute() chain
+    mock_table = MagicMock()
+    mock_upsert = MagicMock()
+    mock_execute = MagicMock()
+
+    mock.table.return_value = mock_table
+    mock_table.upsert.return_value = mock_upsert
+    mock_upsert.execute.return_value = MagicMock(data=[{"id": 1}])
+
+    return mock
 
 
 @pytest.fixture
@@ -174,9 +193,104 @@ def mock_fred_api():
 
 @pytest.fixture
 def flask_test_client():
-    """Flask test client for API testing"""
+    """
+    Flask test client for API testing with mocked database.
+
+    The database connections are mocked to return sample data.
+    """
     from bna_market.web.app import create_app
 
     app = create_app({"TESTING": True})
-    with app.test_client() as client:
-        yield client
+
+    # Sample data for the mock cursor
+    sample_forsale = [
+        (12345, "123 Main St, Nashville, TN", 350000, 3, 2.0, 1800,
+         "SINGLE_FAMILY", 36.1627, -86.7816, "https://example.com/img.jpg",
+         "/homedetails/12345", 5, "FOR_SALE"),
+        (67890, "456 Oak Ave, Nashville, TN", 425000, 4, 3.0, 2400,
+         "SINGLE_FAMILY", 36.1447, -86.8027, "https://example.com/img2.jpg",
+         "/homedetails/67890", 12, "FOR_SALE"),
+    ]
+
+    sample_rentals = [
+        (11111, "789 Elm St, Nashville, TN", 1800, 2, 1.0, 900,
+         "APARTMENT", 36.1500, -86.7900, "https://example.com/rental1.jpg",
+         "/homedetails/11111", 3, "FOR_RENT"),
+        (22222, "321 Pine Rd, Nashville, TN", 2200, 3, 2.0, 1400,
+         "TOWNHOUSE", 36.1600, -86.7800, "https://example.com/rental2.jpg",
+         "/homedetails/22222", 7, "FOR_RENT"),
+    ]
+
+    sample_fred = [
+        ("2024-03-01", "median_price", "MEDLISPRI39580", 360000.0),
+        ("2024-02-01", "median_price", "MEDLISPRI39580", 355000.0),
+        ("2024-01-01", "median_price", "MEDLISPRI39580", 350000.0),
+    ]
+
+    columns_properties = [
+        "zpid", "address", "price", "bedrooms", "bathrooms", "livingArea",
+        "propertyType", "latitude", "longitude", "imgSrc", "detailUrl",
+        "daysOnZillow", "listingStatus"
+    ]
+
+    columns_fred = ["date", "metricName", "seriesId", "value"]
+
+    # Create a mock that handles different queries
+    class SmartMockCursor:
+        def __init__(self):
+            self._data = []
+            self._description = []
+
+        def execute(self, query, params=None):
+            query_lower = query.lower()
+            if "count(*)" in query_lower:
+                if "bna_rentals" in query_lower:
+                    self._data = [(2, 2000)]  # count, avg
+                else:
+                    self._data = [(2, 387500)]  # count, avg
+                self._description = [("count",), ("avg_price",)]
+            elif "bna_rentals" in query_lower and "select" in query_lower:
+                self._data = sample_rentals
+                self._description = [(col,) for col in columns_properties]
+            elif "bna_forsale" in query_lower and "select" in query_lower:
+                self._data = sample_forsale
+                self._description = [(col,) for col in columns_properties]
+            elif "bna_fred_metrics" in query_lower and "select" in query_lower:
+                self._data = sample_fred
+                self._description = [(col,) for col in columns_fred]
+            else:
+                self._data = []
+                self._description = []
+
+        def fetchone(self):
+            return self._data[0] if self._data else None
+
+        def fetchall(self):
+            return self._data
+
+        @property
+        def description(self):
+            return self._description
+
+    class SmartMockConnection:
+        def cursor(self):
+            return SmartMockCursor()
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    @contextmanager
+    def mock_get_db_connection():
+        yield SmartMockConnection()
+
+    # Patch the database connection
+    with patch("bna_market.web.api.routes.get_db_connection", mock_get_db_connection):
+        with patch("bna_market.utils.database.get_db_connection", mock_get_db_connection):
+            with app.test_client() as client:
+                yield client

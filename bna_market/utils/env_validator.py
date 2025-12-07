@@ -29,6 +29,8 @@ def validate_environment(reload_dotenv: bool = True) -> bool:
     required_vars: Dict[str, str] = {
         "RAPID_API_KEY": "RapidAPI key for Zillow data",
         "FRED_API_KEY": "FRED API key for economic indicators",
+        "SUPABASE_URL": "Supabase project URL",
+        "SUPABASE_SERVICE_KEY": "Supabase service role key for database writes",
     }
 
     missing_vars = []
