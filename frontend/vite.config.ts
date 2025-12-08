@@ -27,8 +27,8 @@ export default defineConfig({
         manualChunks: {
           // Core Vue framework - always loaded
           'vue-core': ['vue', 'pinia'],
-          // Heavy charting library - lazy loaded
-          'charts': ['apexcharts', 'vue3-apexcharts'],
+          // Charting library - lazy loaded
+          'charts': ['chart.js', 'vue-chartjs'],
           // Map libraries - lazy loaded
           'maps': ['leaflet', 'leaflet.markercluster'],
           // UI libraries

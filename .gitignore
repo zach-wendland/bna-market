@@ -73,3 +73,12 @@ test_*.csv
 instance/
 *.pid
 .ipynb_checkpoints
+
+# Legacy/unused directories
+backend/
+web/
+
+# SQLite databases (using Supabase now)
+*.db
+*.DB
+BNASFR02.DB

@@ -1,8 +1,13 @@
-# Generated from pyproject.toml for Vercel Python runtime
+# Dependencies for Vercel Python runtime
+# Must match pyproject.toml dependencies
 requests==2.31.0
 pandas==2.1.4
 numpy==1.26.2
 plotly==5.18.0
 flask==3.0.0
+flask-cors==4.0.0
+flask-limiter==3.5.0
 fredapi==0.5.1
 python-dotenv==1.0.0
+supabase>=2.0.0
+psycopg2-binary>=2.9.9

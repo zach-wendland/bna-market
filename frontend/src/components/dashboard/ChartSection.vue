@@ -1,19 +1,47 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useDashboardStore } from '@/stores/dashboard';
-import VueApexCharts from 'vue3-apexcharts';
+import { Bar, Line } from 'vue-chartjs';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+  Filler
+} from 'chart.js';
+import 'chartjs-adapter-date-fns';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+  Filler
+);
 
 const store = useDashboardStore();
 
-// Rental price distribution
-const rentalPriceData = computed(() => {
+// Price distribution data for bar chart
+const priceChartData = computed(() => {
   const properties = store.properties.filter(p => p.price !== null);
-  if (properties.length === 0) return { categories: [], series: [] };
+  if (properties.length === 0) return null;
 
   // Create price buckets
   const buckets: Record<string, number> = {};
   const bucketSize = store.filters.propertyType === 'rental' ? 500 : 50000;
-  const prefix = store.filters.propertyType === 'rental' ? '$' : '$';
+  const prefix = '$';
   const suffix = store.filters.propertyType === 'rental' ? '' : 'K';
   const divisor = store.filters.propertyType === 'rental' ? 1 : 1000;
 
@@ -32,47 +60,51 @@ const rentalPriceData = computed(() => {
   });
 
   return {
-    categories: sortedEntries.map(([k]) => k),
-    series: [{ name: 'Properties', data: sortedEntries.map(([, v]) => v) }]
+    labels: sortedEntries.map(([k]) => k),
+    datasets: [{
+      label: 'Properties',
+      data: sortedEntries.map(([, v]) => v),
+      backgroundColor: '#667eea',
+      borderRadius: 4,
+      barPercentage: 0.6
+    }]
   };
 });
 
 const priceChartOptions = computed(() => ({
-  chart: {
-    type: 'bar' as const,
-    toolbar: { show: false },
-    fontFamily: 'Inter, sans-serif'
-  },
-  colors: ['#667eea'],
-  plotOptions: {
-    bar: {
-      borderRadius: 4,
-      columnWidth: '60%'
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#fff',
+      titleColor: '#374151',
+      bodyColor: '#374151',
+      borderColor: '#e5e7eb',
+      borderWidth: 1
     }
   },
-  dataLabels: { enabled: false },
-  xaxis: {
-    categories: rentalPriceData.value.categories,
-    labels: {
-      style: { colors: '#6b7280', fontSize: '11px' },
-      rotate: -45
+  scales: {
+    x: {
+      grid: { display: false },
+      ticks: {
+        color: '#6b7280',
+        font: { size: 11 },
+        maxRotation: 45,
+        minRotation: 45
+      }
+    },
+    y: {
+      grid: {
+        color: '#e5e7eb',
+        drawBorder: false
+      },
+      ticks: { color: '#6b7280' }
     }
-  },
-  yaxis: {
-    labels: {
-      style: { colors: '#6b7280' }
-    }
-  },
-  grid: {
-    borderColor: '#e5e7eb',
-    strokeDashArray: 4
-  },
-  tooltip: {
-    theme: 'light'
   }
 }));
 
-// FRED metrics time series
+// FRED metrics time series data
 const fredChartData = computed(() => {
   if (!store.fredMetrics || store.fredMetrics.length === 0) return null;
 
@@ -84,53 +116,67 @@ const fredChartData = computed(() => {
   if (medianPriceData.length === 0) return null;
 
   return {
-    dates: medianPriceData.map(m => m.date),
-    values: medianPriceData.map(m => m.value)
+    labels: medianPriceData.map(m => m.date),
+    datasets: [{
+      label: 'Median Price',
+      data: medianPriceData.map(m => m.value),
+      borderColor: '#f59e0b',
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+      borderWidth: 3,
+      tension: 0.4,
+      fill: true,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: '#f59e0b'
+    }]
   };
 });
 
 const fredChartOptions = computed(() => ({
-  chart: {
-    type: 'line' as const,
-    toolbar: { show: false },
-    fontFamily: 'Inter, sans-serif',
-    zoom: { enabled: false }
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    intersect: false,
+    mode: 'index' as const
   },
-  colors: ['#f59e0b'],
-  stroke: {
-    width: 3,
-    curve: 'smooth' as const
-  },
-  markers: {
-    size: 0,
-    hover: { size: 5 }
-  },
-  xaxis: {
-    type: 'datetime' as const,
-    categories: fredChartData.value?.dates || [],
-    labels: {
-      style: { colors: '#6b7280' },
-      datetimeFormatter: {
-        year: 'yyyy',
-        month: "MMM 'yy"
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#fff',
+      titleColor: '#374151',
+      bodyColor: '#374151',
+      borderColor: '#e5e7eb',
+      borderWidth: 1,
+      callbacks: {
+        label: (context: any) => `$${context.raw.toLocaleString()}`
       }
     }
   },
-  yaxis: {
-    labels: {
-      style: { colors: '#6b7280' },
-      formatter: (val: number) => `$${(val / 1000).toFixed(0)}K`
-    }
-  },
-  grid: {
-    borderColor: '#e5e7eb',
-    strokeDashArray: 4
-  },
-  tooltip: {
-    theme: 'light',
-    x: { format: 'MMM yyyy' },
+  scales: {
+    x: {
+      type: 'time' as const,
+      time: {
+        unit: 'month' as const,
+        displayFormats: {
+          month: 'MMM yy'
+        }
+      },
+      grid: { display: false },
+      ticks: { color: '#6b7280' }
+    },
     y: {
-      formatter: (val: number) => `$${val.toLocaleString()}`
+      type: 'linear' as const,
+      grid: {
+        color: '#e5e7eb',
+        drawBorder: false
+      },
+      ticks: {
+        color: '#6b7280',
+        callback: function(value: string | number) {
+          const num = typeof value === 'string' ? parseFloat(value) : value;
+          return `$${(num / 1000).toFixed(0)}K`;
+        }
+      }
     }
   }
 }));
@@ -143,13 +189,8 @@ const fredChartOptions = computed(() => ({
       <h3 class="text-base font-semibold text-gray-900 mb-4">
         {{ store.filters.propertyType === 'rental' ? 'Rental' : 'Sale' }} Price Distribution
       </h3>
-      <div v-if="rentalPriceData.series[0] && rentalPriceData.series[0].data.length > 0" class="h-64">
-        <VueApexCharts
-          type="bar"
-          height="100%"
-          :options="priceChartOptions"
-          :series="rentalPriceData.series"
-        />
+      <div v-if="priceChartData" class="h-64">
+        <Bar :data="priceChartData" :options="priceChartOptions" />
       </div>
       <div v-else class="h-64 flex items-center justify-center text-gray-500">
         No data available
@@ -162,12 +203,7 @@ const fredChartOptions = computed(() => ({
         Median Listing Price Trend
       </h3>
       <div v-if="fredChartData" class="h-64">
-        <VueApexCharts
-          type="line"
-          height="100%"
-          :options="fredChartOptions"
-          :series="[{ name: 'Median Price', data: fredChartData.values }]"
-        />
+        <Line :data="fredChartData" :options="fredChartOptions" />
       </div>
       <div v-else class="h-64 flex items-center justify-center text-gray-500">
         No FRED data available

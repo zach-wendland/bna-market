@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BNA Market is a Nashville real estate market analytics application. It collects property listings from Zillow and economic indicators from FRED, stores them in SQLite, and visualizes them via a Flask API + Vue.js frontend.
+BNA Market is a Nashville real estate market analytics application. It collects property listings from Zillow and economic indicators from FRED, stores them in Supabase PostgreSQL, and visualizes them via a Flask API + Vue.js frontend.
 
 ## Development Commands
 
@@ -37,10 +37,11 @@ mypy bna_market
 ## Architecture
 
 ### Python Package (`bna_market/`)
-- `core/config.py` - Configuration and settings
+- `core/config.py` - Configuration and Supabase settings
 - `pipelines/` - ETL pipelines (Zillow for-sale, rentals, FRED metrics)
 - `services/etl_service.py` - ETL orchestration
-- `utils/` - Database, logging, retry utilities
+- `utils/database.py` - Supabase client and PostgreSQL connection
+- `utils/` - Logging, retry utilities
 - `web/app.py` - Flask application factory
 - `web/api/routes.py` - REST API endpoints
 
@@ -52,21 +53,25 @@ mypy bna_market
 
 ### Data Flow
 ```
-Zillow/FRED APIs → Python ETL → SQLite → Flask API → Vue Frontend
+Zillow/FRED APIs → Python ETL → Supabase PostgreSQL → Flask API → Vue Frontend
 ```
 
-## Database (BNASFR02.DB)
+## Database (Supabase PostgreSQL)
 
-- `BNA_FORSALE` - For-sale properties (unique on `zpid`)
-- `BNA_RENTALS` - Rental properties (unique on `zpid`)
-- `BNA_FRED_METRICS` - Economic indicators (unique on `date` + `series_id`)
+Tables (lowercase for PostgreSQL):
+- `bna_forsale` - For-sale properties (unique on `zpid`)
+- `bna_rentals` - Rental properties (unique on `zpid`)
+- `bna_fred_metrics` - Economic indicators (unique on `date` + `series_id`)
 
 ## Environment
 
-Required in `.env`:
+Required in `.env` (and Vercel environment variables):
 ```
 RAPID_API_KEY=your_rapidapi_key
 FRED_API_KEY=your_fred_api_key
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_KEY=your_supabase_service_key
 ```
 
 ## API Endpoints
@@ -74,18 +79,30 @@ FRED_API_KEY=your_fred_api_key
 | Endpoint | Description |
 |----------|-------------|
 | `GET /api/health` | Health check |
-| `GET /api/properties/search` | Search with filters |
+| `GET /api/dashboard` | Full dashboard data (KPIs, properties, metrics) |
+| `GET /api/properties/search` | Search with filters and pagination |
 | `GET /api/properties/export` | Export as CSV |
 | `GET /api/metrics/fred` | FRED economic data |
 
 ## Deployment
 
-Vercel deployment via `api/index.py` + `vercel.json`. Frontend builds to `frontend/dist/`.
+**Vercel Deployment:**
+- Entrypoint: `api/index.py`
+- Config: `vercel.json`
+- Frontend builds to `frontend/dist/`
+- Python functions use `@vercel/python` runtime
+
+**Required Vercel Environment Variables:**
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_KEY`
+- `RAPID_API_KEY` (for ETL only)
+- `FRED_API_KEY` (for ETL only)
 
 ## Testing
 
 Tests in `tests/` use pytest with fixtures in `conftest.py`:
-- `temp_db` - Temporary SQLite database
+- `temp_db` - Test database fixtures
 - `flask_test_client` - Flask test client
 - `mock_requests_get`, `mock_fred_api` - API mocking
 

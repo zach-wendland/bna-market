@@ -59,7 +59,9 @@
       "WebFetch(domain:bna-market-zach-wendlands-projects.vercel.app)",
       "WebFetch(domain:bna-market-git-main-zach-wendlands-projects.vercel.app)",
       "Bash(npx vite-bundle-visualizer)",
-      "WebFetch(domain:bundlephobia.com)"
+      "WebFetch(domain:bundlephobia.com)",
+      "Bash(git -C \"C:\\Users\\lyyud\\projects\\bna-market\" remote -v)",
+      "Bash(git -C:*)"
     ],
     "deny": [],
     "ask": []
