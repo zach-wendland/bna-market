@@ -113,14 +113,13 @@ def get_dashboard():
             forsale_count = forsale_stats[0] if forsale_stats else 0
             forsale_avg = round(forsale_stats[1]) if forsale_stats and forsale_stats[1] else None
 
-            # Get rental properties (limited for display)
+            # Get rental properties
             cursor.execute("""
                 SELECT zpid, address, price, bedrooms, bathrooms, living_area,
                        property_type, latitude, longitude, img_src, detail_url,
                        days_on_zillow, listing_status
                 FROM bna_rentals
                 ORDER BY price DESC
-                LIMIT 100
             """)
             columns = [desc[0] for desc in cursor.description]
             rentals = []
@@ -133,14 +132,13 @@ def get_dashboard():
                     prop['price_per_sqft'] = None
                 rentals.append(transform_property(prop))
 
-            # Get for-sale properties (limited for display)
+            # Get for-sale properties
             cursor.execute("""
                 SELECT zpid, address, price, bedrooms, bathrooms, living_area,
                        property_type, latitude, longitude, img_src, detail_url,
                        days_on_zillow, listing_status
                 FROM bna_forsale
                 ORDER BY price DESC
-                LIMIT 100
             """)
             columns = [desc[0] for desc in cursor.description]
             forsale = []
