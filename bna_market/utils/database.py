@@ -266,11 +266,25 @@ def upsert_dataframe(
 
         client = get_supabase_client(use_service_key=use_service_key)
 
-        # Replace NaN with None for JSON serialization
-        df = df.where(pd.notnull(df), None)
+        # Replace NaN/inf with None for JSON serialization
+        import numpy as np
+        df = df.replace([np.nan, np.inf, -np.inf], None)
 
-        # Convert DataFrame to list of dicts
+        # Convert float columns that should be integers
+        int_columns = ['bedrooms', 'days_on_zillow']
+        for col in int_columns:
+            if col in df.columns:
+                df[col] = df[col].apply(lambda x: int(x) if pd.notnull(x) and x is not None else None)
+
+        # Convert DataFrame to list of dicts and clean any remaining NaN
         records = df.to_dict(orient="records")
+        for record in records:
+            for key, value in list(record.items()):
+                if pd.isna(value) or (isinstance(value, float) and (np.isnan(value) or np.isinf(value))):
+                    record[key] = None
+                # Convert any remaining floats that should be ints
+                elif isinstance(value, float) and value == int(value) and key in int_columns:
+                    record[key] = int(value)
 
         # Supabase upsert
         result = client.table(table_name_lower).upsert(
