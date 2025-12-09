@@ -266,6 +266,9 @@ def upsert_dataframe(
 
         client = get_supabase_client(use_service_key=use_service_key)
 
+        # Replace NaN with None for JSON serialization
+        df = df.where(pd.notnull(df), None)
+
         # Convert DataFrame to list of dicts
         records = df.to_dict(orient="records")
 
