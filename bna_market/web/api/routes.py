@@ -25,9 +25,39 @@ def snake_to_camel(name: str) -> str:
     return components[0] + ''.join(x.title() for x in components[1:])
 
 
+# Fields that should be numeric (not strings)
+NUMERIC_FIELDS = {
+    'price', 'bathrooms', 'living_area', 'latitude', 'longitude',
+    'price_per_sqft', 'bedrooms', 'days_on_zillow'
+}
+
+
+def convert_numerics(prop: dict) -> dict:
+    """Convert Decimal/string numeric values to proper Python floats/ints"""
+    from decimal import Decimal
+    result = {}
+    for k, v in prop.items():
+        if k in NUMERIC_FIELDS and v is not None:
+            if isinstance(v, Decimal):
+                # Convert Decimal to float or int
+                result[k] = float(v) if '.' in str(v) else int(v)
+            elif isinstance(v, str):
+                # Convert string numbers to float or int
+                try:
+                    result[k] = float(v) if '.' in v else int(v)
+                except (ValueError, TypeError):
+                    result[k] = v
+            else:
+                result[k] = v
+        else:
+            result[k] = v
+    return result
+
+
 def transform_property(prop: dict) -> dict:
-    """Transform property dict from snake_case to camelCase keys"""
-    return {snake_to_camel(k): v for k, v in prop.items()}
+    """Transform property dict: convert numerics and snake_case to camelCase"""
+    converted = convert_numerics(prop)
+    return {snake_to_camel(k): v for k, v in converted.items()}
 
 
 def get_app_db_connection():
