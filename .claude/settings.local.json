@@ -61,7 +61,9 @@
       "Bash(npx vite-bundle-visualizer)",
       "WebFetch(domain:bundlephobia.com)",
       "Bash(git -C \"C:\\Users\\lyyud\\projects\\bna-market\" remote -v)",
-      "Bash(git -C:*)"
+      "Bash(git -C:*)",
+      "WebFetch(domain:community.vercel.com)",
+      "WebFetch(domain:dev.to)"
     ],
     "deny": [],
     "ask": []
