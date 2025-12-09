@@ -74,9 +74,9 @@ def get_dashboard():
 
             # Get rental properties (limited for display)
             cursor.execute("""
-                SELECT zpid, address, price, bedrooms, bathrooms, "livingArea",
-                       "propertyType", latitude, longitude, "imgSrc", "detailUrl",
-                       "daysOnZillow", "listingStatus"
+                SELECT zpid, address, price, bedrooms, bathrooms, living_area,
+                       property_type, latitude, longitude, img_src, detail_url,
+                       days_on_zillow, listing_status
                 FROM bna_rentals
                 ORDER BY price DESC
                 LIMIT 100
@@ -85,18 +85,18 @@ def get_dashboard():
             rentals = []
             for row in cursor.fetchall():
                 prop = dict(zip(columns, row))
-                prop['detailUrl'] = fix_zillow_url(prop.get('detailUrl'))
-                if prop.get('price') and prop.get('livingArea') and prop['livingArea'] > 0:
-                    prop['pricePerSqft'] = round(prop['price'] / prop['livingArea'], 2)
+                prop['detail_url'] = fix_zillow_url(prop.get('detail_url'))
+                if prop.get('price') and prop.get('living_area') and prop['living_area'] > 0:
+                    prop['price_per_sqft'] = round(prop['price'] / prop['living_area'], 2)
                 else:
-                    prop['pricePerSqft'] = None
+                    prop['price_per_sqft'] = None
                 rentals.append(prop)
 
             # Get for-sale properties (limited for display)
             cursor.execute("""
-                SELECT zpid, address, price, bedrooms, bathrooms, "livingArea",
-                       "propertyType", latitude, longitude, "imgSrc", "detailUrl",
-                       "daysOnZillow", "listingStatus"
+                SELECT zpid, address, price, bedrooms, bathrooms, living_area,
+                       property_type, latitude, longitude, img_src, detail_url,
+                       days_on_zillow, listing_status
                 FROM bna_forsale
                 ORDER BY price DESC
                 LIMIT 100
@@ -105,11 +105,11 @@ def get_dashboard():
             forsale = []
             for row in cursor.fetchall():
                 prop = dict(zip(columns, row))
-                prop['detailUrl'] = fix_zillow_url(prop.get('detailUrl'))
-                if prop.get('price') and prop.get('livingArea') and prop['livingArea'] > 0:
-                    prop['pricePerSqft'] = round(prop['price'] / prop['livingArea'], 2)
+                prop['detail_url'] = fix_zillow_url(prop.get('detail_url'))
+                if prop.get('price') and prop.get('living_area') and prop['living_area'] > 0:
+                    prop['price_per_sqft'] = round(prop['price'] / prop['living_area'], 2)
                 else:
-                    prop['pricePerSqft'] = None
+                    prop['price_per_sqft'] = None
                 forsale.append(prop)
 
             # Get FRED metrics
@@ -233,10 +233,10 @@ def search_properties():
 
         # Square footage filters
         if request.args.get("min_sqft"):
-            conditions.append('"livingArea" >= %s')
+            conditions.append('living_area >= %s')
             params.append(int(request.args.get("min_sqft")))
         if request.args.get("max_sqft"):
-            conditions.append('"livingArea" <= %s')
+            conditions.append('living_area <= %s')
             params.append(int(request.args.get("max_sqft")))
 
         # City filter (partial match, case-insensitive)
@@ -262,9 +262,9 @@ def search_properties():
 
             # Get paginated results
             data_query = f"""
-                SELECT zpid, address, price, bedrooms, bathrooms, "livingArea",
-                       "propertyType", latitude, longitude, "imgSrc", "detailUrl",
-                       "daysOnZillow", "listingStatus"
+                SELECT zpid, address, price, bedrooms, bathrooms, living_area,
+                       property_type, latitude, longitude, img_src, detail_url,
+                       days_on_zillow, listing_status
                 FROM {table_name}
                 WHERE {where_clause}
                 ORDER BY price DESC
@@ -278,12 +278,12 @@ def search_properties():
             for row in cursor.fetchall():
                 prop = dict(zip(columns, row))
                 # Fix Zillow URL
-                prop['detailUrl'] = fix_zillow_url(prop.get('detailUrl'))
+                prop['detail_url'] = fix_zillow_url(prop.get('detail_url'))
                 # Calculate price per square foot
-                if prop.get('price') and prop.get('livingArea') and prop['livingArea'] > 0:
-                    prop['pricePerSqft'] = round(prop['price'] / prop['livingArea'], 2)
+                if prop.get('price') and prop.get('living_area') and prop['living_area'] > 0:
+                    prop['price_per_sqft'] = round(prop['price'] / prop['living_area'], 2)
                 else:
-                    prop['pricePerSqft'] = None
+                    prop['price_per_sqft'] = None
                 properties.append(prop)
 
         # Calculate pagination metadata
@@ -367,10 +367,10 @@ def export_properties():
 
         # Square footage filters
         if request.args.get("min_sqft"):
-            conditions.append('"livingArea" >= %s')
+            conditions.append('living_area >= %s')
             params.append(int(request.args.get("min_sqft")))
         if request.args.get("max_sqft"):
-            conditions.append('"livingArea" <= %s')
+            conditions.append('living_area <= %s')
             params.append(int(request.args.get("max_sqft")))
 
         # City filter
@@ -390,9 +390,9 @@ def export_properties():
             cursor = conn.cursor()
 
             query = f"""
-                SELECT zpid, address, price, bedrooms, bathrooms, "livingArea",
-                       "propertyType", latitude, longitude, "daysOnZillow",
-                       "listingStatus", "detailUrl"
+                SELECT zpid, address, price, bedrooms, bathrooms, living_area,
+                       property_type, latitude, longitude, days_on_zillow,
+                       listing_status, detail_url
                 FROM {table_name}
                 WHERE {where_clause}
                 ORDER BY price DESC
