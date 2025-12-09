@@ -1,0 +1,2 @@
+# Ensure frontend dist is included in deployment
+!frontend/dist
