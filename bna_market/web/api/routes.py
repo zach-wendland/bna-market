@@ -130,7 +130,13 @@ def get_dashboard():
                 ORDER BY date DESC
             """)
             columns = [desc[0] for desc in cursor.description]
-            fred_metrics = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            fred_metrics = []
+            for row in cursor.fetchall():
+                metric = dict(zip(columns, row))
+                # Convert date to ISO format for Chart.js compatibility
+                if metric.get('date') and hasattr(metric['date'], 'isoformat'):
+                    metric['date'] = metric['date'].isoformat()
+                fred_metrics.append(metric)
 
             # Calculate FRED KPIs (latest values)
             fred_kpis = {}
