@@ -202,6 +202,26 @@ def read_table_safely(table_name: str, conn: Any = None) -> pd.DataFrame:
             raise
 
 
+def camel_to_snake(name: str) -> str:
+    """Convert camelCase to snake_case."""
+    import re
+    # Insert underscore before uppercase letters and lowercase them
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def get_table_columns(table_name: str) -> set:
+    """Get column names for a table from the database schema."""
+    table_name_lower = table_name.lower()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = %s
+        """, (table_name_lower,))
+        return {row[0] for row in cursor.fetchall()}
+
+
 def upsert_dataframe(
     df: pd.DataFrame,
     table_name: str,
@@ -231,6 +251,19 @@ def upsert_dataframe(
         raise ValueError(f"Invalid table name '{table_name}'")
 
     try:
+        # Convert camelCase column names to snake_case for PostgreSQL
+        df = df.rename(columns={col: camel_to_snake(col) for col in df.columns})
+
+        # Get valid columns from table schema and filter DataFrame
+        valid_columns = get_table_columns(table_name_lower)
+        df_columns = set(df.columns)
+        columns_to_keep = df_columns & valid_columns
+        columns_to_drop = df_columns - valid_columns
+
+        if columns_to_drop:
+            logger.info(f"Dropping {len(columns_to_drop)} columns not in {table_name_lower}: {list(columns_to_drop)[:10]}...")
+            df = df[[col for col in df.columns if col in columns_to_keep]]
+
         client = get_supabase_client(use_service_key=use_service_key)
 
         # Convert DataFrame to list of dicts
