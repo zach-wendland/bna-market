@@ -111,24 +111,26 @@ def get_db_connection():
     try:
         # Get connection parameters from Supabase config
         url = SUPABASE_CONFIG["url"]
-        service_key = SUPABASE_CONFIG["service_key"]
+        db_password = settings.get("supabase_db_password", "")
 
-        if not url or not service_key:
-            raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
+        if not url:
+            raise ValueError("SUPABASE_URL must be set")
+        if not db_password:
+            raise ValueError("SUPABASE_DB_PASSWORD must be set for database connections")
 
         # Parse project reference from URL
         parsed = urlparse(url)
         project_ref = parsed.netloc.split(".")[0]
 
-        # Connect to Supabase PostgreSQL
-        # Use the pooler for better serverless performance
+        # Connect to Supabase PostgreSQL via pooler
+        # Note: Pooler requires database password, NOT service_role key
         pooler_host = settings.get("supabase_pooler_host", "aws-0-us-west-2.pooler.supabase.com")
         conn = psycopg2.connect(
             host=pooler_host,
             port=6543,
             database="postgres",
             user=f"postgres.{project_ref}",
-            password=service_key,
+            password=db_password,
             sslmode="require",
         )
 
