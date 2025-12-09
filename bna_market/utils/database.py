@@ -254,6 +254,11 @@ def upsert_dataframe(
         # Convert camelCase column names to snake_case for PostgreSQL
         df = df.rename(columns={col: camel_to_snake(col) for col in df.columns})
 
+        # Deduplicate by unique columns to avoid ON CONFLICT errors
+        unique_cols_snake = [camel_to_snake(col) for col in unique_columns]
+        if all(col in df.columns for col in unique_cols_snake):
+            df = df.drop_duplicates(subset=unique_cols_snake, keep='last')
+
         # Get valid columns from table schema and filter DataFrame
         valid_columns = get_table_columns(table_name_lower)
         df_columns = set(df.columns)
