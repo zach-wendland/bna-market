@@ -37,6 +37,8 @@ settings = {
     "supabase_url": os.getenv("SUPABASE_URL", ""),
     "supabase_anon_key": os.getenv("SUPABASE_ANON_KEY", ""),
     "supabase_service_key": os.getenv("SUPABASE_SERVICE_KEY", ""),
+    # Pooler host varies by region (us-west-2, us-east-1, eu-central-1, etc.)
+    "supabase_pooler_host": os.getenv("SUPABASE_POOLER_HOST", "aws-0-us-west-2.pooler.supabase.com"),
 }
 
 

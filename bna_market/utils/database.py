@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from supabase import create_client, Client
 
 from bna_market.utils.logger import setup_logger
-from bna_market.core.config import SUPABASE_CONFIG, DATABASE_CONFIG
+from bna_market.core.config import SUPABASE_CONFIG, DATABASE_CONFIG, settings
 
 logger = setup_logger("database")
 
@@ -122,8 +122,9 @@ def get_db_connection():
 
         # Connect to Supabase PostgreSQL
         # Use the pooler for better serverless performance
+        pooler_host = settings.get("supabase_pooler_host", "aws-0-us-west-2.pooler.supabase.com")
         conn = psycopg2.connect(
-            host=f"aws-0-us-east-1.pooler.supabase.com",
+            host=pooler_host,
             port=6543,
             database="postgres",
             user=f"postgres.{project_ref}",
