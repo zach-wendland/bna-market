@@ -4,10 +4,10 @@ A real estate market analytics dashboard for Nashville, TN featuring property li
 
 ## Tech Stack
 
-- **Frontend**: Vue 3 + Vite + Tailwind CSS + Pinia
-- **Backend**: Flask API (Python)
-- **Database**: SQLite
-- **Deployment**: Vercel
+- **Frontend**: Vue 3 + Vite + Tailwind CSS + Chart.js
+- **Backend**: Flask API (Python 3.12)
+- **Database**: Supabase (PostgreSQL)
+- **Deployment**: Vercel (serverless)
 
 ## Features
 
@@ -24,8 +24,9 @@ A real estate market analytics dashboard for Nashville, TN featuring property li
 
 - Python 3.9+
 - Node.js 18+
-- Zillow RapidAPI key
-- FRED API key
+- [Supabase](https://supabase.com) account (free tier works)
+- [Zillow RapidAPI](https://rapidapi.com/apimaker/api/zillow-com1) key
+- [FRED API](https://fred.stlouisfed.org/docs/api/api_key.html) key
 
 ### Installation
 
@@ -39,12 +40,73 @@ pip install -e ".[dev]"
 cd frontend && npm install
 ```
 
-### Environment
+### Environment Variables
 
 Create `.env` in project root:
-```
+
+```bash
+# Database (required)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_KEY=your_service_key
+
+# ETL API Keys (required for data collection)
 RAPID_API_KEY=your_rapidapi_key
 FRED_API_KEY=your_fred_api_key
+```
+
+### Supabase Setup
+
+Create these tables in your Supabase project:
+
+```sql
+-- For-sale properties
+CREATE TABLE bna_forsale (
+  id SERIAL PRIMARY KEY,
+  zpid TEXT UNIQUE NOT NULL,
+  address TEXT,
+  city TEXT,
+  state TEXT,
+  zip_code TEXT,
+  price NUMERIC,
+  bedrooms INTEGER,
+  bathrooms NUMERIC,
+  living_area NUMERIC,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  property_type TEXT,
+  home_status TEXT,
+  date_sold TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Rental properties
+CREATE TABLE bna_rentals (
+  id SERIAL PRIMARY KEY,
+  zpid TEXT UNIQUE NOT NULL,
+  address TEXT,
+  city TEXT,
+  state TEXT,
+  zip_code TEXT,
+  price NUMERIC,
+  bedrooms INTEGER,
+  bathrooms NUMERIC,
+  living_area NUMERIC,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  property_type TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- FRED economic metrics
+CREATE TABLE bna_fred_metrics (
+  id SERIAL PRIMARY KEY,
+  date DATE NOT NULL,
+  series_id TEXT NOT NULL,
+  value NUMERIC,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(date, series_id)
+);
 ```
 
 ### Development
@@ -60,20 +122,66 @@ python -m bna_market web serve
 cd frontend && npm run dev
 ```
 
-### Production Build
+## Vercel Deployment
+
+### Critical Configuration
+
+The `vercel.json` uses auto-detected Python 3.12:
+
+```json
+{
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/*.py": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index.py" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+> **WARNING**: Do NOT add `"runtime"` to vercel.json. Vercel only supports Python 3.12 which is auto-detected. Specifying any runtime causes `spawn pip3.x ENOENT` errors.
+
+### Required Vercel Environment Variables
+
+Add these in Vercel Dashboard → Settings → Environment Variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SUPABASE_URL` | Yes | Your Supabase project URL |
+| `SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public key |
+| `SUPABASE_SERVICE_KEY` | Yes | Supabase service role key |
+| `RAPID_API_KEY` | For ETL | Zillow RapidAPI key |
+| `FRED_API_KEY` | For ETL | FRED API key |
+
+### Deploy Steps
+
+1. Push to GitHub
+2. Import project in Vercel
+3. Add environment variables (above)
+4. Deploy
+
+### Verify Deployment
 
 ```bash
-cd frontend && npm run build
-# Deploy to Vercel or serve with Flask
+# Health check (should return JSON)
+curl https://your-app.vercel.app/api/health
+
+# Dashboard data (requires Supabase env vars)
+curl https://your-app.vercel.app/api/dashboard
 ```
 
 ## Project Structure
 
 ```
 bna-market/
-├── api/index.py              # Vercel entrypoint
+├── api/index.py              # Vercel serverless entrypoint
 ├── bna_market/               # Python package
-│   ├── core/config.py        # Configuration
+│   ├── core/config.py        # Configuration + Supabase settings
 │   ├── pipelines/            # ETL pipelines (Zillow, FRED)
 │   ├── services/etl_service.py
 │   ├── utils/                # Database, logging, retry
@@ -87,8 +195,9 @@ bna-market/
 │       ├── composables/      # Vue composables
 │       └── stores/           # Pinia stores
 ├── tests/                    # Python tests
-├── pyproject.toml            # Python config
-└── vercel.json               # Vercel config
+├── requirements.txt          # Python dependencies (for Vercel)
+├── pyproject.toml            # Python package config
+└── vercel.json               # Vercel deployment config
 ```
 
 ## API Endpoints
@@ -96,6 +205,7 @@ bna-market/
 | Endpoint | Description |
 |----------|-------------|
 | `GET /api/health` | Health check |
+| `GET /api/dashboard` | Full dashboard data (KPIs, properties, metrics) |
 | `GET /api/properties/search` | Search properties with filters |
 | `GET /api/properties/export` | Export as CSV |
 | `GET /api/metrics/fred` | FRED economic metrics |
@@ -111,19 +221,22 @@ bna-market/
 - `sort_by`, `sort_order`: Sorting
 - `page`, `per_page`: Pagination (max 100)
 
-## Database
+## Database Schema
 
-SQLite database (`BNASFR02.DB`) with tables:
-- `BNA_FORSALE` - For-sale properties
-- `BNA_RENTALS` - Rental properties
-- `BNA_FRED_METRICS` - Economic indicators
+Supabase PostgreSQL tables (lowercase):
+
+| Table | Purpose | Unique Key |
+|-------|---------|------------|
+| `bna_forsale` | For-sale properties | `zpid` |
+| `bna_rentals` | Rental properties | `zpid` |
+| `bna_fred_metrics` | Economic indicators | `date` + `series_id` |
 
 ## Testing
 
 ```bash
-pytest                           # Run all tests
-pytest tests/unit/test_api.py   # Single file
-pytest -v -k "test_health"      # Specific test
+pytest                                    # All tests with coverage
+pytest tests/unit/test_api_routes.py -v   # Single file
+pytest -k "test_health" -v                # Single test by name
 ```
 
 ## License

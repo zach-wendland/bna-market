@@ -25,8 +25,9 @@ python -m bna_market web serve
 cd frontend && npm run dev
 
 # Run tests
-pytest
-pytest tests/unit/test_api_routes.py -v
+pytest                                    # All tests with coverage
+pytest tests/unit/test_api_routes.py -v   # Single file
+pytest -k "test_health" -v                # Single test by name
 
 # Code quality
 black bna_market tests
@@ -87,10 +88,10 @@ SUPABASE_SERVICE_KEY=your_supabase_service_key
 ## Deployment
 
 **Vercel Deployment:**
-- Entrypoint: `api/index.py`
-- Config: `vercel.json`
+- Entrypoint: `api/index.py` (exposes Flask `app` variable)
+- Config: `vercel.json` - DO NOT specify Python runtime (auto-detects Python 3.12)
 - Frontend builds to `frontend/dist/`
-- Python functions use `@vercel/python` runtime
+- API rewrites: `/api/*` → `api/index.py`, all other routes → SPA
 
 **Required Vercel Environment Variables:**
 - `SUPABASE_URL`
