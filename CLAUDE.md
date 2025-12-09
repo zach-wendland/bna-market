@@ -59,10 +59,17 @@ Zillow/FRED APIs → Python ETL → Supabase PostgreSQL → Flask API → Vue Fr
 
 ## Database (Supabase PostgreSQL)
 
-Tables (lowercase for PostgreSQL):
+Tables (lowercase, snake_case columns):
 - `bna_forsale` - For-sale properties (unique on `zpid`)
 - `bna_rentals` - Rental properties (unique on `zpid`)
 - `bna_fred_metrics` - Economic indicators (unique on `date` + `series_id`)
+
+**ETL Data Transformations** (handled automatically in `utils/database.py`):
+- Converts camelCase column names to snake_case
+- Filters out columns not in table schema
+- Replaces NaN/infinity with None
+- Deduplicates rows by unique key
+- Converts floats to ints for integer columns
 
 ## Environment
 
@@ -73,7 +80,10 @@ FRED_API_KEY=your_fred_api_key
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_KEY=your_supabase_service_key
+SUPABASE_DB_PASSWORD=your_database_password  # PostgreSQL password, NOT service key
 ```
+
+**Critical**: `SUPABASE_DB_PASSWORD` is the database password from Supabase Dashboard → Settings → Database. This is required for pooler connections and is different from the service_role API key.
 
 ## API Endpoints
 
@@ -97,6 +107,7 @@ SUPABASE_SERVICE_KEY=your_supabase_service_key
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_KEY`
+- `SUPABASE_DB_PASSWORD` (database password, NOT service key)
 - `RAPID_API_KEY` (for ETL only)
 - `FRED_API_KEY` (for ETL only)
 

@@ -49,11 +49,14 @@ Create `.env` in project root:
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_KEY=your_service_key
+SUPABASE_DB_PASSWORD=your_database_password  # For pooler connections (NOT service key)
 
 # ETL API Keys (required for data collection)
 RAPID_API_KEY=your_rapidapi_key
 FRED_API_KEY=your_fred_api_key
 ```
+
+> **Note**: `SUPABASE_DB_PASSWORD` is the database password from Supabase Dashboard → Settings → Database, NOT the service_role key.
 
 ### Supabase Setup
 
@@ -76,9 +79,15 @@ CREATE TABLE bna_forsale (
   longitude NUMERIC,
   property_type TEXT,
   home_status TEXT,
+  img_src TEXT,
+  detail_url TEXT,
+  days_on_zillow INTEGER,
+  listing_status TEXT,
   date_sold TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX idx_forsale_price ON bna_forsale(price);
 
 -- Rental properties
 CREATE TABLE bna_rentals (
@@ -95,19 +104,30 @@ CREATE TABLE bna_rentals (
   latitude NUMERIC,
   longitude NUMERIC,
   property_type TEXT,
+  img_src TEXT,
+  detail_url TEXT,
+  days_on_zillow INTEGER,
+  listing_status TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX idx_rentals_price ON bna_rentals(price);
 
 -- FRED economic metrics
 CREATE TABLE bna_fred_metrics (
   id SERIAL PRIMARY KEY,
   date DATE NOT NULL,
+  metric_name TEXT,
   series_id TEXT NOT NULL,
   value NUMERIC,
   created_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(date, series_id)
 );
+
+CREATE INDEX idx_fred_date ON bna_fred_metrics(date);
 ```
+
+> **Note**: Column names use snake_case. The ETL automatically converts Zillow's camelCase to snake_case.
 
 ### Development
 
@@ -155,8 +175,11 @@ Add these in Vercel Dashboard → Settings → Environment Variables:
 | `SUPABASE_URL` | Yes | Your Supabase project URL |
 | `SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public key |
 | `SUPABASE_SERVICE_KEY` | Yes | Supabase service role key |
+| `SUPABASE_DB_PASSWORD` | Yes | Database password (from Supabase Dashboard → Settings → Database) |
 | `RAPID_API_KEY` | For ETL | Zillow RapidAPI key |
 | `FRED_API_KEY` | For ETL | FRED API key |
+
+> **Important**: `SUPABASE_DB_PASSWORD` is the PostgreSQL database password, NOT the service_role API key. Find it in Supabase Dashboard → Settings → Database.
 
 ### Deploy Steps
 
