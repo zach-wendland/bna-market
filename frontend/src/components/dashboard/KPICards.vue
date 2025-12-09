@@ -70,7 +70,7 @@ const fredKpis = computed<KPIItem[]>(() => {
   if (store.fredKPIs.medianDaysOnMarket) {
     items.push({
       label: 'Median DOM',
-      value: `${store.fredKPIs.medianDaysOnMarket} days`,
+      value: `${Math.round(store.fredKPIs.medianDaysOnMarket)} days`,
       icon: 'clock',
       color: 'from-rose-500 to-rose-600'
     });

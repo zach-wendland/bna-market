@@ -108,9 +108,9 @@ const priceChartOptions = computed(() => ({
 const fredChartData = computed(() => {
   if (!store.fredMetrics || store.fredMetrics.length === 0) return null;
 
-  // Get median price data
+  // Get median price data (stored as 'median_listing_price_change' in database)
   const medianPriceData = store.fredMetrics
-    .filter(m => m.metricName === 'median_price')
+    .filter(m => m.metricName === 'median_listing_price_change')
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   if (medianPriceData.length === 0) return null;

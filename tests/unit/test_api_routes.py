@@ -81,9 +81,9 @@ class TestPropertiesSearchEndpoint:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -101,9 +101,9 @@ class TestPropertiesSearchEndpoint:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -121,9 +121,9 @@ class TestPropertiesSearchEndpoint:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -149,9 +149,9 @@ class TestPropertiesSearchEndpoint:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -189,9 +189,9 @@ class TestPropertiesExportEndpoint:
         ]
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("daysOnZillow",),
-            ("listingStatus",), ("detailUrl",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("days_on_zillow",),
+            ("listing_status",), ("detail_url",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -339,9 +339,9 @@ class TestSearchFiltersComprehensive:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -363,9 +363,9 @@ class TestSearchFiltersComprehensive:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -387,9 +387,9 @@ class TestSearchFiltersComprehensive:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -399,8 +399,8 @@ class TestSearchFiltersComprehensive:
 
         calls = mock_cursor.execute.call_args_list
         count_query = calls[0][0][0]
-        assert '"livingArea" >= %s' in count_query
-        assert '"livingArea" <= %s' in count_query
+        assert "living_area >= %s" in count_query
+        assert "living_area <= %s" in count_query
 
     @patch("bna_market.web.api.routes.get_app_db_connection")
     def test_search_applies_city_filter(self, mock_db_conn, client):
@@ -411,9 +411,9 @@ class TestSearchFiltersComprehensive:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -434,9 +434,9 @@ class TestSearchFiltersComprehensive:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -460,9 +460,9 @@ class TestSearchFiltersComprehensive:
         ]
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -486,9 +486,9 @@ class TestSearchFiltersComprehensive:
         ]
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -511,9 +511,9 @@ class TestExportFiltersComprehensive:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("daysOnZillow",),
-            ("listingStatus",), ("detailUrl",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("days_on_zillow",),
+            ("listing_status",), ("detail_url",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -536,8 +536,8 @@ class TestExportFiltersComprehensive:
         assert "bedrooms <= %s" in query
         assert "bathrooms >= %s" in query
         assert "bathrooms <= %s" in query
-        assert '"livingArea" >= %s' in query
-        assert '"livingArea" <= %s' in query
+        assert "living_area >= %s" in query
+        assert "living_area <= %s" in query
         assert "LOWER(address) LIKE %s" in query
         assert "address LIKE %s" in query
 
@@ -601,9 +601,9 @@ class TestErrorHandling:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn
@@ -623,9 +623,9 @@ class TestErrorHandling:
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = [
             ("zpid",), ("address",), ("price",), ("bedrooms",),
-            ("bathrooms",), ("livingArea",), ("propertyType",),
-            ("latitude",), ("longitude",), ("imgSrc",),
-            ("detailUrl",), ("daysOnZillow",), ("listingStatus",)
+            ("bathrooms",), ("living_area",), ("property_type",),
+            ("latitude",), ("longitude",), ("img_src",),
+            ("detail_url",), ("days_on_zillow",), ("listing_status",)
         ]
         mock_conn.cursor.return_value = mock_cursor
         mock_db_conn.return_value.__enter__.return_value = mock_conn

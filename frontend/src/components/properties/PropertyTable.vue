@@ -104,7 +104,7 @@ function getSortIcon(column: string): string {
             <td>{{ property.bedrooms ?? 'N/A' }}</td>
 
             <!-- Baths -->
-            <td>{{ property.bathrooms ?? 'N/A' }}</td>
+            <td>{{ property.bathrooms != null ? (Number.isInteger(property.bathrooms) ? property.bathrooms : property.bathrooms.toFixed(1)) : 'N/A' }}</td>
 
             <!-- Sqft -->
             <td>{{ formatNumber(property.livingArea) }}</td>

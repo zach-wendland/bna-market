@@ -19,6 +19,17 @@ from bna_market.utils.logger import setup_logger
 logger = setup_logger("api")
 
 
+def snake_to_camel(name: str) -> str:
+    """Convert snake_case to camelCase for JSON API responses"""
+    components = name.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
+
+
+def transform_property(prop: dict) -> dict:
+    """Transform property dict from snake_case to camelCase keys"""
+    return {snake_to_camel(k): v for k, v in prop.items()}
+
+
 def get_app_db_connection():
     """Get database connection (Supabase PostgreSQL)"""
     return get_db_connection()
@@ -90,7 +101,7 @@ def get_dashboard():
                     prop['price_per_sqft'] = round(prop['price'] / prop['living_area'], 2)
                 else:
                     prop['price_per_sqft'] = None
-                rentals.append(prop)
+                rentals.append(transform_property(prop))
 
             # Get for-sale properties (limited for display)
             cursor.execute("""
@@ -110,7 +121,7 @@ def get_dashboard():
                     prop['price_per_sqft'] = round(prop['price'] / prop['living_area'], 2)
                 else:
                     prop['price_per_sqft'] = None
-                forsale.append(prop)
+                forsale.append(transform_property(prop))
 
             # Get FRED metrics
             cursor.execute("""
@@ -124,7 +135,7 @@ def get_dashboard():
             # Calculate FRED KPIs (latest values)
             fred_kpis = {}
             metric_map = {
-                'median_price': 'medianPrice',
+                'median_listing_price_change': 'medianPrice',
                 'active_listings': 'activeListings',
                 'median_dom': 'medianDaysOnMarket',
                 'msa_per_capita_income': 'perCapitaIncome'
@@ -284,7 +295,7 @@ def search_properties():
                     prop['price_per_sqft'] = round(prop['price'] / prop['living_area'], 2)
                 else:
                     prop['price_per_sqft'] = None
-                properties.append(prop)
+                properties.append(transform_property(prop))
 
         # Calculate pagination metadata
         total_pages = (total_count + per_page - 1) // per_page

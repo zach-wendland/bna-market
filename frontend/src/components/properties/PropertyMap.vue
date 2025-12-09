@@ -113,7 +113,7 @@ function updateMarkers() {
         </p>
         <p class="text-sm text-gray-500 mt-2">
           ${property.bedrooms ?? '?'} bed &bull;
-          ${property.bathrooms ?? '?'} bath &bull;
+          ${property.bathrooms != null ? (Number.isInteger(property.bathrooms) ? property.bathrooms : property.bathrooms.toFixed(1)) : '?'} bath &bull;
           ${formatNumber(property.livingArea)} sqft
         </p>
         ${property.pricePerSqft ? `<p class="text-sm text-gray-500">$${Math.round(property.pricePerSqft)}/sqft</p>` : ''}
