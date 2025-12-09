@@ -509,11 +509,25 @@ def health_check():
     Returns:
         JSON response with API status
     """
+    # Test database connection
+    db_status = "unknown"
+    db_error = None
+    try:
+        with get_app_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            db_status = "connected"
+    except Exception as e:
+        db_status = "error"
+        db_error = str(e)
+
     return jsonify(
         {
-            "status": "healthy",
+            "status": "healthy" if db_status == "connected" else "degraded",
             "api_version": "1.0",
             "database": "supabase",
+            "db_status": db_status,
+            "db_error": db_error,
             "endpoints": [
                 "/api/dashboard",
                 "/api/properties/search",

@@ -63,7 +63,8 @@
       "Bash(git -C \"C:\\Users\\lyyud\\projects\\bna-market\" remote -v)",
       "Bash(git -C:*)",
       "WebFetch(domain:community.vercel.com)",
-      "WebFetch(domain:dev.to)"
+      "WebFetch(domain:dev.to)",
+      "Bash(set \"SUPABASE_DB_PASSWORD=Spartans1994!\")"
     ],
     "deny": [],
     "ask": []
