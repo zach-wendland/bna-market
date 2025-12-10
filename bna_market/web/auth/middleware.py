@@ -26,7 +26,7 @@ def verify_token(token: str) -> dict:
     """
     Verify Supabase JWT token
 
-    Supabase signs JWTs with the project's JWT secret (derived from service key).
+    Supabase signs JWTs with the project's JWT secret.
     The token contains user ID (sub), email, role, and expiration.
 
     Args:
@@ -39,11 +39,11 @@ def verify_token(token: str) -> dict:
         jwt.ExpiredSignatureError: Token has expired
         jwt.InvalidTokenError: Token is invalid or malformed
     """
-    # Supabase uses the service key as the JWT secret
-    secret = settings["supabase_service_key"]
+    # Supabase uses a dedicated JWT secret for signing tokens
+    secret = settings["supabase_jwt_secret"]
 
     if not secret:
-        logger.error("SUPABASE_SERVICE_KEY not configured")
+        logger.error("SUPABASE_JWT_SECRET not configured")
         raise jwt.InvalidTokenError("Server configuration error")
 
     try:

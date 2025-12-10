@@ -37,6 +37,7 @@ settings = {
     "supabase_url": os.getenv("SUPABASE_URL", ""),
     "supabase_anon_key": os.getenv("SUPABASE_ANON_KEY", ""),
     "supabase_service_key": os.getenv("SUPABASE_SERVICE_KEY", ""),
+    "supabase_jwt_secret": os.getenv("SUPABASE_JWT_SECRET", ""),  # JWT secret for verifying auth tokens
     # Database password for direct PostgreSQL/pooler connections (NOT the service key)
     "supabase_db_password": os.getenv("SUPABASE_DB_PASSWORD", ""),
     # Pooler host varies by region (us-west-2, us-east-1, eu-central-1, etc.)
