@@ -584,6 +584,12 @@ def health_check():
     )
 
 
+@api_bp.route("/auth/ping", methods=["GET"])
+def auth_ping():
+    """Ultra-simple auth test endpoint added directly to routes.py"""
+    return jsonify({"status": "ok", "message": "Auth endpoint works!", "location": "routes.py"}), 200
+
+
 @api_bp.route("/debug/blueprints", methods=["GET"])
 def debug_blueprints():
     """
