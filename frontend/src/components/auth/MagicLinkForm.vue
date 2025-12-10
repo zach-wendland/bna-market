@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 
 const authStore = useAuthStore();
-const router = useRouter();
 const route = useRoute();
 
 const email = ref('');

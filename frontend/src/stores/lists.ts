@@ -17,7 +17,7 @@ export const useListsStore = defineStore('lists', () => {
   const hasLists = computed(() => lists.value.length > 0);
   const sortedLists = computed(() => {
     return [...lists.value].sort((a, b) => {
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
   });
 
@@ -50,8 +50,8 @@ export const useListsStore = defineStore('lists', () => {
 
     try {
       const data = await api.getListWithItems(listId);
-      currentList.value = data.list;
-      currentListItems.value = data.items;
+      currentList.value = data;
+      currentListItems.value = data.items || [];
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to load list details';
       console.error('Failed to load list with items:', err);
@@ -86,14 +86,13 @@ export const useListsStore = defineStore('lists', () => {
    */
   async function updateList(
     listId: string,
-    name?: string,
-    description?: string
+    updates: { name?: string; description?: string }
   ): Promise<PropertyList> {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const updatedList = await api.updateList(listId, name, description);
+      const updatedList = await api.updateList(listId, updates.name, updates.description);
 
       // Update in lists array
       const index = lists.value.findIndex((l) => l.id === listId);
@@ -166,7 +165,7 @@ export const useListsStore = defineStore('lists', () => {
       // Update item count in lists array
       const list = lists.value.find((l) => l.id === listId);
       if (list) {
-        list.item_count = (list.item_count || 0) + 1;
+        list.itemCount = (list.itemCount || 0) + 1;
       }
 
       return newItem;
@@ -196,8 +195,8 @@ export const useListsStore = defineStore('lists', () => {
 
       // Update item count in lists array
       const list = lists.value.find((l) => l.id === listId);
-      if (list && list.item_count > 0) {
-        list.item_count -= 1;
+      if (list && list.itemCount > 0) {
+        list.itemCount -= 1;
       }
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to remove property from list';

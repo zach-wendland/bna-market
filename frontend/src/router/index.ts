@@ -62,7 +62,7 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(_, __, savedPosition) {
     if (savedPosition) {
       return savedPosition;
     } else {
@@ -72,7 +72,7 @@ const router = createRouter({
 });
 
 // Navigation guards for authentication
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _, next) => {
   const authStore = useAuthStore();
 
   // Update page title
