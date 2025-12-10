@@ -582,3 +582,96 @@ def health_check():
             ],
         }
     )
+
+
+@api_bp.route("/debug/blueprints", methods=["GET"])
+def debug_blueprints():
+    """
+    Debug endpoint to verify blueprint imports work in production
+
+    This endpoint tests if the auth, lists, and searches blueprints
+    can be imported successfully in the Vercel serverless environment.
+    """
+    import traceback
+
+    results = {
+        "status": "ok",
+        "flask_app_loaded": True,
+        "blueprints": {}
+    }
+
+    # Test auth blueprint import
+    try:
+        from bna_market.web.api.auth_routes import auth_bp
+        results["blueprints"]["auth"] = {
+            "imported": True,
+            "name": auth_bp.name,
+            "url_prefix": auth_bp.url_prefix,
+            "error": None
+        }
+    except Exception as e:
+        results["blueprints"]["auth"] = {
+            "imported": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        results["status"] = "error"
+
+    # Test lists blueprint import
+    try:
+        from bna_market.web.api.lists_routes import lists_bp
+        results["blueprints"]["lists"] = {
+            "imported": True,
+            "name": lists_bp.name,
+            "url_prefix": lists_bp.url_prefix,
+            "error": None
+        }
+    except Exception as e:
+        results["blueprints"]["lists"] = {
+            "imported": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        results["status"] = "error"
+
+    # Test searches blueprint import
+    try:
+        from bna_market.web.api.searches_routes import searches_bp
+        results["blueprints"]["searches"] = {
+            "imported": True,
+            "name": searches_bp.name,
+            "url_prefix": searches_bp.url_prefix,
+            "error": None
+        }
+    except Exception as e:
+        results["blueprints"]["searches"] = {
+            "imported": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        results["status"] = "error"
+
+    # Test auth middleware import
+    try:
+        from bna_market.web.auth import require_auth
+        results["auth_middleware"] = {
+            "imported": True,
+            "error": None
+        }
+    except Exception as e:
+        results["auth_middleware"] = {
+            "imported": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        results["status"] = "error"
+
+    # Check which blueprints are actually registered with Flask app
+    try:
+        registered_blueprints = list(current_app.blueprints.keys())
+        results["registered_blueprints"] = registered_blueprints
+        results["total_registered"] = len(registered_blueprints)
+    except Exception as e:
+        results["registered_blueprints_error"] = str(e)
+
+    return jsonify(results)
