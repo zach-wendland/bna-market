@@ -76,7 +76,7 @@ instance/
 
 # Legacy/unused directories
 backend/
-web/
+# web/ - REMOVED: This was blocking bna_market/web/ Flask app
 
 # SQLite databases (using Supabase now)
 *.db
