@@ -11,24 +11,23 @@ const status = ref<'verifying' | 'success' | 'error'>('verifying');
 const errorMessage = ref('');
 
 onMounted(async () => {
-  // Extract token and type from URL hash or query params
-  // Supabase sends tokens in URL hash like: #access_token=...&token_type=bearer&type=magiclink
+  // Extract tokens from URL hash
+  // Supabase sends tokens in URL hash like: #access_token=...&refresh_token=...&type=magiclink
   const hashParams = new URLSearchParams(window.location.hash.substring(1));
   const queryParams = route.query;
 
-  // Try to get token from hash first (Supabase default), then query params
-  const token = hashParams.get('access_token') || queryParams.token as string;
-  const type = hashParams.get('type') || queryParams.type as string || 'magiclink';
+  const accessToken = hashParams.get('access_token');
+  const refreshToken = hashParams.get('refresh_token');
 
-  if (!token) {
+  if (!accessToken) {
     status.value = 'error';
     errorMessage.value = 'No authentication token found. Please try logging in again.';
     return;
   }
 
   try {
-    // Verify the magic link token
-    await authStore.verifyMagicLink(token, type);
+    // Store tokens directly - they're already verified by Supabase
+    await authStore.handleMagicLinkCallback(accessToken, refreshToken || '');
     status.value = 'success';
 
     // Get redirect path from query params or default to dashboard
@@ -40,8 +39,8 @@ onMounted(async () => {
     }, 1500);
   } catch (error: any) {
     status.value = 'error';
-    errorMessage.value = error.response?.data?.error || 'Failed to verify magic link. The link may have expired or is invalid.';
-    console.error('Magic link verification failed:', error);
+    errorMessage.value = error.response?.data?.error || 'Failed to complete authentication. Please try again.';
+    console.error('Magic link callback failed:', error);
   }
 });
 

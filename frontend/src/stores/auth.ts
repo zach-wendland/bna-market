@@ -38,28 +38,30 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function verifyMagicLink(token: string, type: string = 'magiclink'): Promise<void> {
+  async function handleMagicLinkCallback(access_token: string, refresh_token: string): Promise<void> {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const response = await api.post('/auth/verify', { token, type });
-
-      accessToken.value = response.data.access_token;
-      refreshToken.value = response.data.refresh_token;
-      user.value = response.data.user;
+      // Store tokens from Supabase (already verified)
+      accessToken.value = access_token;
+      refreshToken.value = refresh_token;
 
       // Store in localStorage for persistence
-      localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
 
       // Set default auth header for future requests
-      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
+      // Get user info from our backend
+      const response = await api.get('/auth/session');
+      user.value = response.data.user;
+      localStorage.setItem('user', JSON.stringify(response.data.user));
 
       console.log('User authenticated:', user.value);
     } catch (e: any) {
-      const errorMessage = e.response?.data?.error || e.message || 'Failed to verify token';
+      const errorMessage = e.response?.data?.error || e.message || 'Failed to complete authentication';
       error.value = errorMessage;
       throw new Error(errorMessage);
     } finally {
@@ -159,7 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Actions
     sendMagicLink,
-    verifyMagicLink,
+    handleMagicLinkCallback,
     loadSession,
     refreshAccessToken,
     logout,
