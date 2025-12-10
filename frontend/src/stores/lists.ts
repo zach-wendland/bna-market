@@ -92,7 +92,7 @@ export const useListsStore = defineStore('lists', () => {
     error.value = null;
 
     try {
-      const updatedList = await api.updateList(listId, updates.name, updates.description);
+      const updatedList = await api.updateList(listId, updates);
 
       // Update in lists array
       const index = lists.value.findIndex((l) => l.id === listId);

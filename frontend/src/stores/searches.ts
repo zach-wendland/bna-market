@@ -107,7 +107,7 @@ export const useSearchesStore = defineStore('searches', () => {
     error.value = null;
 
     try {
-      const updatedSearch = await api.updateSavedSearch(searchId, updates.name, updates.filters);
+      const updatedSearch = await api.updateSavedSearch(searchId, updates);
 
       // Update in searches array
       const index = searches.value.findIndex((s) => s.id === searchId);
@@ -169,9 +169,9 @@ export const useSearchesStore = defineStore('searches', () => {
       currentSearch.value = search;
 
       // Apply the saved filters to the dashboard
-      dashboardStore.setPropertyType(search.propertyType);
+      dashboardStore.filters.propertyType = search.propertyType;
 
-      // Note: Dashboard store doesn't have searchProperties method
+      // Note: Dashboard store doesn't have a method to apply filters programmatically
       // Filters will be applied when user interacts with the dashboard
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to apply search';
@@ -189,7 +189,7 @@ export const useSearchesStore = defineStore('searches', () => {
     const dashboardStore = useDashboardStore();
 
     // Check property type
-    if (search.propertyType !== dashboardStore.propertyType) {
+    if (search.propertyType !== dashboardStore.filters.propertyType) {
       return false;
     }
 
