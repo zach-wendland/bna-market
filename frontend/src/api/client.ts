@@ -14,10 +14,17 @@ const api = axios.create({
   },
 });
 
-// Request interceptor for logging
+// Request interceptor for logging and auth headers
 api.interceptors.request.use(
   (config) => {
     console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+
+    // Add auth token if available
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -109,6 +116,115 @@ export async function fetchFredMetrics(filters?: {
 export async function checkHealth(): Promise<{ status: string; database: { connected: boolean } }> {
   const response = await api.get('/health');
   return response.data;
+}
+
+// ====================================================================
+// Property Lists API
+// ====================================================================
+
+export interface PropertyList {
+  id: string;
+  name: string;
+  description?: string;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListItem {
+  id: string;
+  listId: string;
+  zpid: string;
+  propertyType: 'rental' | 'forsale';
+  notes?: string;
+  addedAt: string;
+}
+
+export async function getUserLists(): Promise<PropertyList[]> {
+  const response = await api.get<{ lists: PropertyList[] }>('/lists');
+  return response.data.lists;
+}
+
+export async function createList(name: string, description?: string): Promise<PropertyList> {
+  const response = await api.post<PropertyList>('/lists', { name, description });
+  return response.data;
+}
+
+export async function getListWithItems(listId: string): Promise<PropertyList & { items: ListItem[] }> {
+  const response = await api.get<PropertyList & { items: ListItem[] }>(`/lists/${listId}`);
+  return response.data;
+}
+
+export async function updateList(listId: string, updates: { name?: string; description?: string }): Promise<PropertyList> {
+  const response = await api.put<PropertyList>(`/lists/${listId}`, updates);
+  return response.data;
+}
+
+export async function deleteList(listId: string): Promise<void> {
+  await api.delete(`/lists/${listId}`);
+}
+
+export async function addPropertyToList(
+  listId: string,
+  zpid: string,
+  propertyType: 'rental' | 'forsale',
+  notes?: string
+): Promise<ListItem> {
+  const response = await api.post<ListItem>(`/lists/${listId}/items`, { zpid, propertyType, notes });
+  return response.data;
+}
+
+export async function removePropertyFromList(listId: string, itemId: string): Promise<void> {
+  await api.delete(`/lists/${listId}/items/${itemId}`);
+}
+
+export async function updateListItemNotes(listId: string, itemId: string, notes: string): Promise<ListItem> {
+  const response = await api.put<ListItem>(`/lists/${listId}/items/${itemId}`, { notes });
+  return response.data;
+}
+
+// ====================================================================
+// Saved Searches API
+// ====================================================================
+
+export interface SavedSearch {
+  id: string;
+  name: string;
+  propertyType: 'rental' | 'forsale';
+  filters: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getSavedSearches(): Promise<SavedSearch[]> {
+  const response = await api.get<{ searches: SavedSearch[] }>('/searches');
+  return response.data.searches;
+}
+
+export async function saveSearch(
+  name: string,
+  propertyType: 'rental' | 'forsale',
+  filters: Record<string, any>
+): Promise<SavedSearch> {
+  const response = await api.post<SavedSearch>('/searches', { name, propertyType, filters });
+  return response.data;
+}
+
+export async function getSavedSearch(searchId: string): Promise<SavedSearch> {
+  const response = await api.get<SavedSearch>(`/searches/${searchId}`);
+  return response.data;
+}
+
+export async function updateSavedSearch(
+  searchId: string,
+  updates: { name?: string; filters?: Record<string, any> }
+): Promise<SavedSearch> {
+  const response = await api.put<SavedSearch>(`/searches/${searchId}`, updates);
+  return response.data;
+}
+
+export async function deleteSavedSearch(searchId: string): Promise<void> {
+  await api.delete(`/searches/${searchId}`);
 }
 
 export default api;
