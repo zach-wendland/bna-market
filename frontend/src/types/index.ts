@@ -74,12 +74,31 @@ export interface PropertyKPIs {
 }
 
 export interface FredKPIs {
+  // Housing Market
   medianPrice?: number;
   activeListings?: number;
-  medianDaysOnMarket?: number;
-  nonFarmEmployment?: number;
-  msaPopulation?: number;
+  medianDom?: number;
+  medianPpSqft?: number;
+
+  // Employment & Economy
+  unemploymentRate?: number;
+  employment?: number;
+
+  // Construction
+  buildingPermits?: number;
+
+  // Financing
+  mortgageRate30yr?: number;
+
+  // Rental Market
+  rentalVacancy?: number;
+
+  // Income & Demographics
   perCapitaIncome?: number;
+  population?: number;
+
+  // Market Confidence
+  consumerSentiment?: number;
 }
 
 export interface DashboardData {
@@ -92,7 +111,7 @@ export interface DashboardData {
 }
 
 // View mode
-export type ViewMode = 'table' | 'cards' | 'map';
+export type ViewMode = 'table' | 'cards' | 'map' | 'carousel';
 
 // Sort config
 export interface SortConfig {

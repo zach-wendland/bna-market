@@ -8,119 +8,145 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-cottage-cream text-cyber-navy;
   }
 }
 
 @layer components {
-  /* Card styles */
+  /* Card styles - Cottage-core warmth with subtle cyber edge */
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100;
+    @apply bg-white rounded-xl shadow-sm border border-cottage-sand/50;
   }
 
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-md hover:border-gray-200;
+    @apply transition-all duration-200 hover:shadow-md hover:border-cottage-wheat hover:shadow-glow-cyan/10;
   }
 
-  /* Button variants */
+  /* Button variants - Cyberpunk accents */
   .btn {
     @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md;
+    @apply bg-gradient-to-r from-primary-500 to-cyber-magenta text-white hover:from-primary-600 hover:to-cyber-magenta/90 focus:ring-primary-500 shadow-sm hover:shadow-glow-violet;
   }
 
   .btn-secondary {
-    @apply bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500;
+    @apply bg-cottage-sand text-cottage-bark hover:bg-cottage-wheat focus:ring-cottage-sage;
   }
 
   .btn-outline {
-    @apply border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-primary-500;
+    @apply border border-cottage-wheat text-cottage-bark hover:bg-cottage-cream hover:border-primary-300 focus:ring-primary-500;
   }
 
   .btn-ghost {
-    @apply text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500;
+    @apply text-cottage-forest hover:bg-cottage-sand hover:text-cyber-navy focus:ring-cottage-sage;
   }
 
-  /* Input styles */
+  .btn-cyber {
+    @apply bg-cyber-navy text-cyber-cyan border border-cyber-cyan/30 hover:border-cyber-cyan hover:shadow-glow-cyan transition-all;
+  }
+
+  /* Input styles - Warm with cyber focus */
   .input {
-    @apply block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors;
+    @apply block w-full px-3 py-2 text-sm border border-cottage-wheat rounded-lg shadow-sm placeholder-cottage-wheat bg-white focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-colors;
   }
 
   .select {
-    @apply block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors;
+    @apply block w-full px-3 py-2 text-sm border border-cottage-wheat rounded-lg shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-colors;
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-medium text-cottage-bark mb-1;
   }
 
-  /* KPI Card */
+  /* KPI Card - Cottage warmth with cyber accents */
   .kpi-card {
-    @apply card p-6 flex flex-col;
+    @apply card p-6 flex flex-col bg-gradient-to-br from-white to-cottage-cream;
   }
 
   .kpi-label {
-    @apply text-sm font-medium text-gray-500 uppercase tracking-wide;
+    @apply text-sm font-medium text-cottage-forest uppercase tracking-wide;
   }
 
   .kpi-value {
-    @apply text-2xl font-bold text-gray-900 mt-1;
+    @apply text-2xl font-bold text-cyber-navy mt-1;
   }
 
-  /* Table styles */
+  /* Table styles - Cyberpunk header with cottage body */
   .data-table {
-    @apply min-w-full divide-y divide-gray-200;
+    @apply min-w-full divide-y divide-cottage-sand;
   }
 
   .data-table thead {
-    @apply bg-gradient-to-r from-primary-600 to-primary-700;
+    @apply bg-gradient-to-r from-cyber-navy to-cyber-deepBlue;
   }
 
   .data-table th {
-    @apply px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider;
+    @apply px-4 py-3 text-left text-xs font-semibold text-cyber-cyan uppercase tracking-wider;
   }
 
   .data-table tbody {
-    @apply bg-white divide-y divide-gray-100;
+    @apply bg-white divide-y divide-cottage-sand/50;
   }
 
   .data-table td {
-    @apply px-4 py-3 text-sm text-gray-600;
+    @apply px-4 py-3 text-sm text-cottage-bark;
   }
 
   .data-table tbody tr {
-    @apply hover:bg-gray-50 transition-colors;
+    @apply hover:bg-cottage-cream transition-colors;
   }
 
-  /* Filter chip */
+  /* Filter chip - Cottage meets cyber */
   .filter-chip {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium bg-primary-50 text-primary-700 rounded-full border border-primary-200;
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium bg-cottage-sand text-cottage-bark rounded-full border border-cottage-wheat;
   }
 
   .filter-chip-remove {
-    @apply w-4 h-4 rounded-full hover:bg-primary-200 flex items-center justify-center cursor-pointer transition-colors;
+    @apply w-4 h-4 rounded-full hover:bg-cottage-terracotta/20 flex items-center justify-center cursor-pointer transition-colors;
   }
 
   /* View toggle */
   .view-toggle-btn {
-    @apply p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors;
+    @apply p-2 rounded-lg text-cottage-forest hover:text-cyber-navy hover:bg-cottage-sand transition-colors;
   }
 
   .view-toggle-btn.active {
-    @apply bg-primary-100 text-primary-700;
+    @apply bg-gradient-to-r from-primary-500/10 to-accent-500/10 text-primary-600 shadow-glow-violet/20;
+  }
+
+  /* Glow effects for cyberpunk elements */
+  .glow-cyan {
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5), 0 0 20px rgba(0, 245, 255, 0.3);
+  }
+
+  .glow-magenta {
+    box-shadow: 0 0 10px rgba(255, 46, 151, 0.5), 0 0 20px rgba(255, 46, 151, 0.3);
+  }
+
+  .glow-violet {
+    box-shadow: 0 0 10px rgba(176, 38, 255, 0.5), 0 0 20px rgba(176, 38, 255, 0.3);
+  }
+
+  /* Chart card styling */
+  .chart-card {
+    @apply card p-4 bg-gradient-to-br from-white via-cottage-cream/30 to-cottage-sand/20;
+  }
+
+  .chart-card h3 {
+    @apply text-sm font-semibold text-cyber-navy mb-3;
   }
 }
 
-/* Leaflet customization */
+/* Leaflet customization - Cyber-styled map */
 .leaflet-container {
   @apply rounded-xl;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
 .leaflet-popup-content-wrapper {
-  @apply rounded-lg shadow-lg;
+  @apply rounded-lg shadow-lg bg-white border border-cottage-sand;
 }
 
 .leaflet-popup-content {
@@ -130,30 +156,48 @@
 .marker-cluster-small,
 .marker-cluster-medium,
 .marker-cluster-large {
-  @apply bg-primary-500/60;
+  background: rgba(0, 245, 255, 0.4);
+  border: 2px solid rgba(0, 245, 255, 0.6);
 }
 
 .marker-cluster-small div,
 .marker-cluster-medium div,
 .marker-cluster-large div {
-  @apply bg-primary-600/80 text-white font-semibold;
+  background: rgba(176, 38, 255, 0.8);
+  color: white;
+  font-weight: 600;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling - Cottage warmth */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 rounded-full;
+  @apply bg-cottage-sand/50 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  @apply bg-cottage-wheat rounded-full hover:bg-cottage-terracotta/50;
 }
 
-/* Loading spinner */
+/* Loading spinner - Cyber glow */
 .spinner {
   @apply w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin;
+}
+
+/* Cyber spinner variant */
+.spinner-cyber {
+  @apply w-5 h-5 border-2 border-cyber-cyan border-t-transparent rounded-full animate-spin;
+}
+
+/* Section headings */
+.section-heading {
+  @apply text-lg font-semibold text-cyber-navy;
+}
+
+/* Gradient text - cyberpunk style */
+.text-gradient-cyber {
+  @apply bg-gradient-to-r from-cyber-cyan via-primary-500 to-cyber-magenta bg-clip-text text-transparent;
 }

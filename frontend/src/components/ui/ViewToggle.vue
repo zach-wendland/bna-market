@@ -5,9 +5,10 @@ import type { ViewMode } from '@/types';
 const store = useDashboardStore();
 
 const views: { mode: ViewMode; label: string; icon: string }[] = [
-  { mode: 'table', label: 'Table', icon: 'table' },
+  { mode: 'carousel', label: 'Carousel', icon: 'carousel' },
   { mode: 'cards', label: 'Cards', icon: 'cards' },
-  { mode: 'map', label: 'Map', icon: 'map' }
+  { mode: 'map', label: 'Map', icon: 'map' },
+  { mode: 'table', label: 'Table', icon: 'table' }
 ];
 
 function setView(mode: ViewMode) {
@@ -30,8 +31,13 @@ function setView(mode: ViewMode) {
       :aria-label="`Switch to ${view.label} view`"
       :aria-pressed="store.viewMode === view.mode"
     >
+      <!-- Carousel icon -->
+      <svg v-if="view.icon === 'carousel'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+
       <!-- Table icon -->
-      <svg v-if="view.icon === 'table'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg v-else-if="view.icon === 'table'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
       </svg>
 

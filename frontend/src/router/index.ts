@@ -52,6 +52,39 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/tools',
+    name: 'Tools',
+    component: () => import('@/views/ToolsView.vue'),
+    meta: { title: 'Pricing Tools - BNA Market' }
+  },
+  {
+    path: '/crm',
+    name: 'CRM',
+    component: () => import('@/views/CRMView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: 'CRM - BNA Market'
+    }
+  },
+  {
+    path: '/comps',
+    name: 'Comps',
+    component: () => import('@/views/CompsView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: 'Property Comps - BNA Market'
+    }
+  },
+  {
+    path: '/portfolio',
+    name: 'Portfolio',
+    component: () => import('@/views/PortfolioView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: 'Portfolio - BNA Market'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFoundView.vue'),

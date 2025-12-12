@@ -86,18 +86,37 @@ ZILLOW_CONFIG = {
 
 
 # FRED API configuration
+# 12 Nashville MSA Economic Indicators for December 2025 socioeconomic analysis
+# Data range: 2023-present (2 years of historical data)
 FRED_CONFIG = {
     "series_ids": {
-        "active_listings": "ACTLISCOU34980",
-        "median_price": "MEDLISPRI34980",
-        "median_dom": "MEDDAYONMAR34980",
-        "employment_non_farm": "NASH947NA",
-        "msa_population": "NVLPOP",
-        "median_pp_sqft": "MEDLISPRIPERSQUFEE34980",
-        "median_listing_price_change": "MEDLISPRI34980",
-        "msa_per_capita_income": "NASH947PCPI",
+        # Housing Market Indicators
+        "median_price": "MEDLISPRI34980",           # Median Listing Price - Nashville MSA
+        "active_listings": "ACTLISCOU34980",         # Active Listing Count - Nashville MSA
+        "median_dom": "MEDDAYONMAR34980",            # Median Days on Market - Nashville MSA
+        "median_pp_sqft": "MEDLISPRIPERSQUFEE34980", # Median Listing Price per Sq Ft - Nashville MSA
+
+        # Employment & Economy
+        "unemployment_rate": "NASH947URN",           # Unemployment Rate - Nashville MSA
+        "employment": "NASH947NA",                   # All Employees: Total Nonfarm - Nashville MSA
+
+        # Construction Activity
+        "building_permits": "NASH947BPPRIVSA",       # Building Permits - Nashville MSA
+
+        # Financing
+        "mortgage_rate_30yr": "MORTGAGE30US",        # 30-Year Fixed Rate Mortgage Average (National)
+
+        # Rental Market
+        "rental_vacancy": "RRVRUSQ156N",             # Rental Vacancy Rate (National - proxy)
+
+        # Income & Demographics
+        "per_capita_income": "NASH947PCPI",          # Per Capita Personal Income - Nashville MSA
+        "population": "NVLPOP",                      # Population - Nashville MSA
+
+        # Market Confidence
+        "consumer_sentiment": "UMCSENT",             # Consumer Sentiment Index (National)
     },
-    "years_historical": 15,
+    "years_historical": 2,  # 2023-present for compact charts
 }
 
 

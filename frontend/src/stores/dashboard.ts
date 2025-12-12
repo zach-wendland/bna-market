@@ -30,7 +30,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const isLoading = ref(false);
   const isLoadingPreview = ref(false);
   const error = ref<string | null>(null);
-  const viewMode = ref<ViewMode>('table');
+  const viewMode = ref<ViewMode>('carousel');
   const previewCount = ref<number | null>(null);
 
   // Filters

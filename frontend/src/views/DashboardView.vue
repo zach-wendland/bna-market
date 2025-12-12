@@ -24,6 +24,12 @@ const PropertyMap = defineAsyncComponent({
   delay: 200,
 });
 
+const PropertyCarousel = defineAsyncComponent({
+  loader: () => import('@/components/properties/PropertyCarousel.vue'),
+  loadingComponent: LoadingSpinner,
+  delay: 200,
+});
+
 const store = useDashboardStore();
 
 onMounted(async () => {
@@ -32,70 +38,78 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <!-- Loading State -->
     <div v-if="store.isLoading && !store.propertyKPIs" class="flex items-center justify-center min-h-[400px]">
-      <LoadingSpinner size="lg" />
+      <div class="spinner-cyber w-8 h-8"></div>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="store.error" class="card p-8 text-center">
-      <div class="text-red-500 mb-4">
-        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div v-else-if="store.error" class="card p-6 text-center border-cyber-magenta/30">
+      <div class="text-cyber-magenta mb-3">
+        <svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       </div>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">Failed to Load Dashboard</h3>
-      <p class="text-gray-600 mb-4">{{ store.error }}</p>
-      <button @click="store.loadDashboard()" class="btn btn-primary">
+      <h3 class="text-base font-medium text-cyber-navy mb-2">Failed to Load Dashboard</h3>
+      <p class="text-cottage-forest text-sm mb-4">{{ store.error }}</p>
+      <button @click="store.loadDashboard()" class="btn btn-cyber">
         Try Again
       </button>
     </div>
 
     <!-- Dashboard Content -->
     <template v-else>
-      <!-- KPI Cards -->
-      <section class="mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Market Overview</h2>
+      <!-- KPI Cards Section -->
+      <section class="mb-6">
+        <h2 class="section-heading flex items-center gap-2 mb-3">
+          <span class="w-1 h-5 bg-gradient-to-b from-cyber-magenta to-primary-500 rounded-full"></span>
+          Market Overview
+        </h2>
         <KPICards />
       </section>
 
-      <!-- Charts Section -->
-      <section class="mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Market Trends</h2>
+      <!-- Charts Section - Compact -->
+      <section class="mb-6">
         <ChartSection />
       </section>
 
       <!-- Properties Section -->
       <section>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">Property Listings</h2>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3">
+          <h2 class="section-heading flex items-center gap-2 mb-2 sm:mb-0">
+            <span class="w-1 h-5 bg-gradient-to-b from-cottage-sage to-cottage-forest rounded-full"></span>
+            Property Listings
+          </h2>
           <ViewToggle />
         </div>
 
         <!-- Filters -->
-        <PropertyFilters class="mb-4" />
+        <PropertyFilters class="mb-3" />
 
         <!-- Active Filter Chips -->
-        <FilterChips v-if="store.hasActiveFilters" class="mb-4" />
+        <FilterChips v-if="store.hasActiveFilters" class="mb-3" />
 
         <!-- Results Count -->
-        <div v-if="store.pagination" class="mb-4 text-sm text-gray-600">
-          <span class="font-medium">{{ store.pagination.totalCount.toLocaleString() }}</span>
+        <div v-if="store.pagination" class="mb-3 text-sm text-cottage-forest">
+          <span class="font-semibold text-cyber-navy">{{ store.pagination.totalCount.toLocaleString() }}</span>
           {{ store.filters.propertyType === 'rental' ? 'rental' : 'for-sale' }} properties found
         </div>
 
         <!-- Property Views -->
         <div class="relative">
-          <LoadingSpinner v-if="store.isLoading" class="absolute top-4 right-4 z-10" />
+          <div v-if="store.isLoading" class="absolute top-4 right-4 z-10">
+            <div class="spinner-cyber"></div>
+          </div>
 
-          <PropertyTable v-if="store.viewMode === 'table'" />
+          <PropertyCarousel v-if="store.viewMode === 'carousel'" />
           <PropertyCards v-else-if="store.viewMode === 'cards'" />
           <PropertyMap v-else-if="store.viewMode === 'map'" />
+          <PropertyTable v-else-if="store.viewMode === 'table'" />
         </div>
 
         <!-- Pagination -->
-        <Pagination v-if="store.pagination && store.pagination.totalPages > 1" class="mt-6" />
+        <Pagination v-if="store.pagination && store.pagination.totalPages > 1" class="mt-4" />
       </section>
     </template>
   </main>

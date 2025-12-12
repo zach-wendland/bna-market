@@ -54,13 +54,15 @@ def create_app(config=None):
     from bna_market.web.api.auth_routes import auth_bp
     from bna_market.web.api.lists_routes import lists_bp
     from bna_market.web.api.searches_routes import searches_bp
+    from bna_market.web.api.crm_routes import crm_bp
 
     app.register_blueprint(api_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(lists_bp)
     app.register_blueprint(searches_bp)
+    app.register_blueprint(crm_bp)
 
-    logger.info("Flask app initialized with auth, lists, and searches blueprints")
+    logger.info("Flask app initialized with auth, lists, searches, and CRM blueprints")
 
     return app
 
