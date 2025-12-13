@@ -19,7 +19,7 @@
   }
 
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-md hover:border-cottage-wheat hover:shadow-glow-cyan/10;
+    @apply transition-all duration-200 hover:shadow-md hover:border-cottage-wheat;
   }
 
   /* Button variants - Cyberpunk accents */
@@ -113,7 +113,7 @@
   }
 
   .view-toggle-btn.active {
-    @apply bg-gradient-to-r from-primary-500/10 to-accent-500/10 text-primary-600 shadow-glow-violet/20;
+    @apply bg-gradient-to-r from-primary-500/10 to-accent-500/10 text-primary-600;
   }
 
   /* Glow effects for cyberpunk elements */
