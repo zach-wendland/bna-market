@@ -546,6 +546,124 @@ def get_fred_metrics():
         return jsonify({"error": "Internal server error"}), 500
 
 
+@api_bp.route("/metrics/property-trends", methods=["GET"])
+@limiter.limit("30 per minute")
+def get_property_trends():
+    """
+    Get monthly property trends for time-series charts
+
+    Returns aggregated monthly statistics from property snapshots:
+    - Average rental/sale prices
+    - Average days on market
+    - Listing counts
+
+    Query Parameters:
+        months (int): Number of months of history (default: 12, max: 24)
+
+    Returns:
+        JSON with rentalTrends, saleTrends arrays
+    """
+    try:
+        months = min(int(request.args.get("months", 12)), 24)
+
+        with get_app_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Query monthly rental stats from view
+            cursor.execute("""
+                SELECT
+                    DATE_TRUNC('month', snapshot_date)::DATE as month,
+                    ROUND(AVG(price)::numeric, 0) as avg_price,
+                    ROUND(AVG(days_on_zillow)::numeric, 1) as avg_dom,
+                    COUNT(*) as listing_count
+                FROM bna_rentals
+                WHERE price > 0
+                  AND snapshot_date >= CURRENT_DATE - INTERVAL '%s months'
+                GROUP BY DATE_TRUNC('month', snapshot_date)
+                ORDER BY month ASC
+            """, (months,))
+
+            rental_trends = []
+            for row in cursor.fetchall():
+                rental_trends.append({
+                    "month": row[0].isoformat() if row[0] else None,
+                    "avgPrice": int(row[1]) if row[1] else None,
+                    "avgDom": float(row[2]) if row[2] else None,
+                    "listingCount": int(row[3]) if row[3] else 0
+                })
+
+            # Query monthly for-sale stats
+            cursor.execute("""
+                SELECT
+                    DATE_TRUNC('month', snapshot_date)::DATE as month,
+                    ROUND(AVG(price)::numeric, 0) as avg_price,
+                    ROUND(AVG(days_on_zillow)::numeric, 1) as avg_dom,
+                    COUNT(*) as listing_count
+                FROM bna_forsale
+                WHERE price > 0
+                  AND snapshot_date >= CURRENT_DATE - INTERVAL '%s months'
+                GROUP BY DATE_TRUNC('month', snapshot_date)
+                ORDER BY month ASC
+            """, (months,))
+
+            sale_trends = []
+            for row in cursor.fetchall():
+                sale_trends.append({
+                    "month": row[0].isoformat() if row[0] else None,
+                    "avgPrice": int(row[1]) if row[1] else None,
+                    "avgDom": float(row[2]) if row[2] else None,
+                    "listingCount": int(row[3]) if row[3] else 0
+                })
+
+            # Get current snapshot stats for comparison
+            cursor.execute("""
+                SELECT
+                    COUNT(*) as count,
+                    ROUND(AVG(price)::numeric, 0) as avg_price,
+                    ROUND(AVG(days_on_zillow)::numeric, 1) as avg_dom
+                FROM bna_rentals
+                WHERE price > 0 AND snapshot_date = CURRENT_DATE
+            """)
+            rental_current = cursor.fetchone()
+
+            cursor.execute("""
+                SELECT
+                    COUNT(*) as count,
+                    ROUND(AVG(price)::numeric, 0) as avg_price,
+                    ROUND(AVG(days_on_zillow)::numeric, 1) as avg_dom
+                FROM bna_forsale
+                WHERE price > 0 AND snapshot_date = CURRENT_DATE
+            """)
+            sale_current = cursor.fetchone()
+
+        logger.info(f"Property trends query: {len(rental_trends)} rental months, {len(sale_trends)} sale months")
+
+        return jsonify({
+            "rentalTrends": rental_trends,
+            "saleTrends": sale_trends,
+            "currentStats": {
+                "rental": {
+                    "count": rental_current[0] if rental_current else 0,
+                    "avgPrice": int(rental_current[1]) if rental_current and rental_current[1] else None,
+                    "avgDom": float(rental_current[2]) if rental_current and rental_current[2] else None
+                },
+                "sale": {
+                    "count": sale_current[0] if sale_current else 0,
+                    "avgPrice": int(sale_current[1]) if sale_current and sale_current[1] else None,
+                    "avgDom": float(sale_current[2]) if sale_current and sale_current[2] else None
+                }
+            },
+            "monthsRequested": months
+        })
+
+    except ValueError as e:
+        logger.error(f"Invalid months parameter: {e}")
+        return jsonify({"error": "Invalid months parameter"}), 400
+    except Exception as e:
+        logger.error(f"Property trends error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
 @api_bp.route("/health", methods=["GET"])
 def health_check():
     """

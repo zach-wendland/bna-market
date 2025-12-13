@@ -136,8 +136,9 @@ DATABASE_CONFIG = {
         "fred_metrics": "bna_fred_metrics",
     },
     "unique_keys": {
-        "for_sale": ["zpid"],
-        "rentals": ["zpid"],
+        # zpid + snapshot_date allows same property on different days (historical tracking)
+        "for_sale": ["zpid", "snapshot_date"],
+        "rentals": ["zpid", "snapshot_date"],
         "fred_metrics": ["date", "series_id"],
     },
 }

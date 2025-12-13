@@ -118,6 +118,29 @@ export async function checkHealth(): Promise<{ status: string; database: { conne
   return response.data;
 }
 
+// Property Trends API (for time-series charts)
+export interface PropertyTrendPoint {
+  month: string;
+  avgPrice: number | null;
+  avgDom: number | null;
+  listingCount: number;
+}
+
+export interface PropertyTrendsResponse {
+  rentalTrends: PropertyTrendPoint[];
+  saleTrends: PropertyTrendPoint[];
+  currentStats: {
+    rental: { count: number; avgPrice: number | null; avgDom: number | null };
+    sale: { count: number; avgPrice: number | null; avgDom: number | null };
+  };
+  monthsRequested: number;
+}
+
+export async function fetchPropertyTrends(months: number = 12): Promise<PropertyTrendsResponse> {
+  const response = await api.get<PropertyTrendsResponse>(`/metrics/property-trends?months=${months}`);
+  return response.data;
+}
+
 // ====================================================================
 // Property Lists API
 // ====================================================================

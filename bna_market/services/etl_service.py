@@ -2,10 +2,11 @@
 ETL orchestration service for BNA Market
 
 Coordinates data pipeline execution and database updates with Supabase upserts.
+Supports historical snapshot tracking for time-series analysis.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, date
 
 import pandas as pd
 
@@ -36,14 +37,16 @@ class ETLService:
         """Initialize ETL service"""
         self.logger = setup_logger("etl_service")
 
-    def _prepare_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _prepare_dataframe(self, df: pd.DataFrame, add_snapshot: bool = False) -> pd.DataFrame:
         """
         Prepare DataFrame for Supabase insertion
 
         Converts complex types to JSON strings and handles NaN values.
+        Optionally adds snapshot_date for historical tracking.
 
         Args:
             df: Input DataFrame
+            add_snapshot: If True, adds snapshot_date column with current date
 
         Returns:
             Cleaned DataFrame ready for insertion
@@ -53,6 +56,10 @@ class ETLService:
 
         # Make a copy to avoid modifying original
         df = df.copy()
+
+        # Add snapshot_date for historical tracking (property tables only)
+        if add_snapshot:
+            df['snapshot_date'] = date.today().isoformat()
 
         # Convert dict/list columns to JSON strings
         for col in df.columns:
@@ -88,17 +95,17 @@ class ETLService:
             self.logger.warning("Skipping bna_forsale table update - no data available")
             return 0
 
-        # Prepare data for insertion
-        df = self._prepare_dataframe(df)
+        # Prepare data for insertion with snapshot_date for historical tracking
+        df = self._prepare_dataframe(df, add_snapshot=True)
 
-        # Upsert to Supabase
+        # Upsert to Supabase (zpid + snapshot_date = unique per day)
         count = upsert_dataframe(
             df,
             table_name="bna_forsale",
             unique_columns=DATABASE_CONFIG["unique_keys"]["for_sale"]
         )
 
-        self.logger.info(f"Updated bna_forsale: {count} records upserted")
+        self.logger.info(f"Updated bna_forsale: {count} records upserted (snapshot: {date.today()})")
         return count
 
     def update_rentals_table(self) -> int:
@@ -124,17 +131,17 @@ class ETLService:
             self.logger.warning("Skipping bna_rentals table update - no data available")
             return 0
 
-        # Prepare data for insertion
-        df = self._prepare_dataframe(df)
+        # Prepare data for insertion with snapshot_date for historical tracking
+        df = self._prepare_dataframe(df, add_snapshot=True)
 
-        # Upsert to Supabase
+        # Upsert to Supabase (zpid + snapshot_date = unique per day)
         count = upsert_dataframe(
             df,
             table_name="bna_rentals",
             unique_columns=DATABASE_CONFIG["unique_keys"]["rentals"]
         )
 
-        self.logger.info(f"Updated bna_rentals: {count} records upserted")
+        self.logger.info(f"Updated bna_rentals: {count} records upserted (snapshot: {date.today()})")
         return count
 
     def update_fred_metrics_table(self) -> int:

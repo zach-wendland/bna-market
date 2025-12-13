@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { createClient } from '@supabase/supabase-js';
 import api from '@/api/client';
+
+// Initialize Supabase client for OAuth
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface User {
   id: string;
@@ -20,6 +26,39 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!user.value && !!accessToken.value);
 
   // Actions
+  // Google OAuth Sign-in
+  async function signInWithGoogle(): Promise<void> {
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
+        }
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      // Supabase will redirect to Google, then back to our callback
+      console.log('Redirecting to Google OAuth...');
+    } catch (e: any) {
+      const errorMessage = e.message || 'Failed to initiate Google sign-in';
+      error.value = errorMessage;
+      isLoading.value = false;
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Magic Link (kept as fallback)
   async function sendMagicLink(email: string, redirectTo?: string): Promise<void> {
     isLoading.value = true;
     error.value = null;
@@ -160,6 +199,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
 
     // Actions
+    signInWithGoogle,
     sendMagicLink,
     handleMagicLinkCallback,
     loadSession,
