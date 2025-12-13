@@ -1,0 +1,11 @@
+# ads.txt - Authorized Digital Sellers
+# Last reviewed: 2025-12-13
+# Review quarterly per IAB best practices
+# See: https://iabtechlab.com/ads-txt/
+
+# Owner information (IAB Tech Lab ads.txt v1.0.3)
+OWNERDOMAIN=bna-market.vercel.app
+CONTACT=zmwendland@users.noreply.github.com
+
+# Google AdSense
+google.com, pub-1566400655585884, DIRECT, f08c47fec0942fa0
